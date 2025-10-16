@@ -61,12 +61,13 @@ Development server runs on http://localhost:3000
 ## Architecture Notes
 
 ### Data Flow
-1. Scraper fetches Form 4 filings from SEC EDGAR
-2. Filters significant trades (buys >$500K, sales >$100K)
-3. Enriches with Yahoo Finance stock prices
-4. Detects cluster buys (multiple insiders, same stock)
-5. Stores in Supabase PostgreSQL
-6. Landing page fetches via API routes
+1. Scraper fetches Form 4 filings from SEC EDGAR RSS feed
+2. Parses XML from discovered filing URLs (tries multiple patterns)
+3. Filters trades (currently capturing ALL trades, minBuyValue=0, minSaleValue=0)
+4. Detects cluster buys (2+ insiders buying same stock)
+5. Enriches with Yahoo Finance stock prices
+6. Upserts to Supabase PostgreSQL (handles duplicates via unique constraint)
+7. Landing page fetches via API routes
 
 ### API Design
 - All API routes use Next.js App Router pattern
@@ -76,6 +77,8 @@ Development server runs on http://localhost:3000
 
 ### Database Schema
 - Trades stored with full details
+- Unique constraint: `filing_date, trade_date, ticker, insider_name, transaction_type, transaction_value`
+- Upsert strategy prevents duplicate trades
 - Cluster buys detected (multiple insiders, same stock)
 - Job runs logged for monitoring (optional)
 - `ai_summary` field reserved for future use
@@ -88,10 +91,11 @@ Development server runs on http://localhost:3000
 - Scripts use `.js` extension with ES module syntax
 
 ### Environment Variables
-- Required: `SUPABASE_URL`, `SUPABASE_KEY`, `SEC_USER_AGENT`
-- Use `.env.local` for development
-- SEC requires User-Agent header (Company + Email)
-- Supabase credentials are pre-filled in `.env.example`
+- Required: `SUPABASE_URL`, `SUPABASE_SECRET`, `SEC_USER_AGENT`
+- Optional: `MAX_FILINGS` (limits number of filings to process, default: all)
+- Use `.env` or `.env.local` for development
+- SEC requires User-Agent header (Company + Email format)
+- Supabase credentials are pre-configured for production database
 
 ### Client vs Server Components
 - Landing page (`page.js`) is client component (`'use client'`) for state management
@@ -101,14 +105,17 @@ Development server runs on http://localhost:3000
 ### Error Handling
 - Scraper continues on individual filing errors
 - Database errors logged but don't crash processes
-- Rate limiting delays built into API calls
+- Rate limiting: SEC enforces 10 req/sec max (100ms delay between requests)
+- XML discovery tries multiple URL patterns (index.json, HTML fallback, common patterns)
+- Deduplication happens at multiple stages (filings, records, database)
 
 ## Development Workflow
 
 ### First Time Setup
-1. Copy `.env.example` to `.env.local` and update SEC_USER_AGENT
-2. Create Supabase project and run `database/schema.sql`
-3. Run `npm install`
+1. Copy `.env` to `.env.local` if needed (or modify `.env` directly)
+2. Update `SEC_USER_AGENT` with your company name and email
+3. Supabase is already configured (or create new project and run `database/schema.sql`)
+4. Run `npm install`
 
 ### Testing Locally
 1. Start web app: `npm run dev`
@@ -133,7 +140,19 @@ Edit `src/lib/sec-edgar.js` for SEC API changes
 ## SEC EDGAR Notes
 
 - Form 4 = Statement of Changes in Beneficial Ownership
-- Must include User-Agent header (company + email)
-- Rate limit: Be respectful, add delays between requests
+- Must include User-Agent header (company + email format required by SEC)
+- Rate limit: 10 requests/second max (enforced with 100ms delays)
+- RSS feed: `browse-edgar?action=getcurrent&type=4&output=atom`
 - XML structure: ownershipDocument → nonDerivativeTransaction
 - Transaction codes: P = Purchase, S = Sale, A = Acquired, D = Disposed
+- XML discovery: tries index.json, HTML parsing, and 5+ common filename patterns
+- Accession numbers: Format `0000000000-00-000000`, stored with/without dashes
+
+## Scraper Behavior
+
+- **Current trade filtering**: Captures ALL trades (minBuyValue=0, minSaleValue=0)
+- **Cluster detection**: 2+ insiders buying same stock = cluster buy
+- **Deduplication**: By accession number (filings), then by unique constraint (database)
+- **Rate limiting**: 500ms between filing fetches, 100ms between SEC API calls
+- **MAX_FILINGS env var**: Limits processing for testing (default: all filings)
+- **Upsert strategy**: Uses `onConflict` to update existing trades or insert new ones

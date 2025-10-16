@@ -10,8 +10,10 @@ export class InsiderTradeScraper {
   constructor() {
     this.secClient = new SECEdgarClient();
     this.stockClient = new StockPriceClient();
-    this.minBuyValue = 500000; // $500K minimum for buys
-    this.minSaleValue = 100000; // $100K minimum for sales
+    // No minimum thresholds - CeoBuying shows ALL insider trading activity
+    // Users can filter by value in the frontend UI if needed
+    this.minBuyValue = 0;    // Capture all purchases
+    this.minSaleValue = 0;   // Capture all sales
   }
 
   /**
@@ -33,9 +35,14 @@ export class InsiderTradeScraper {
 
       const allTrades = [];
 
-      // 2. Parse each filing (limit to first 10 for testing)
-      const filingsToProcess = uniqueFilings.slice(0, 10);
-      console.log(`Processing ${filingsToProcess.length} filings...`);
+      // 2. Parse each filing
+      // For testing: set lower limit. For production: process all uniqueFilings
+      const maxFilings = process.env.MAX_FILINGS ? parseInt(process.env.MAX_FILINGS) : uniqueFilings.length;
+      const filingsToProcess = uniqueFilings.slice(0, maxFilings);
+      console.log(`Processing ${filingsToProcess.length} filings (out of ${uniqueFilings.length} available)...`);
+      if (maxFilings < uniqueFilings.length) {
+        console.log(`  Note: Limited to ${maxFilings} filings. Set MAX_FILINGS env var to process more.`);
+      }
 
       for (const filing of filingsToProcess) {
         try {
@@ -71,17 +78,21 @@ export class InsiderTradeScraper {
 
       console.log(`Parsed ${allTrades.length} trades`);
 
-      // 3. Filter trades by value
+      // 3. Filter trades by value (currently no minimum - capturing all trades)
       const filteredTrades = allTrades.filter(trade => {
-        if (trade.transactionType === 'P') {
-          return trade.value >= this.minBuyValue;
-        } else if (trade.transactionType === 'S') {
-          return trade.value >= this.minSaleValue;
+        const isSignificant = (trade.transactionType === 'P' && trade.value >= this.minBuyValue) ||
+                             (trade.transactionType === 'S' && trade.value >= this.minSaleValue);
+        
+        if (!isSignificant) {
+          console.log(`  Filtering out: ${trade.ticker} ${trade.transactionType} ${trade.value.toLocaleString()} (below threshold)`);
         }
-        return false;
+        
+        return isSignificant;
       });
 
-      console.log(`Filtered to ${filteredTrades.length} significant trades`);
+      console.log(`Filtered to ${filteredTrades.length} trades for processing`);
+      console.log(`  Purchases: ${filteredTrades.filter(t => t.transactionType === 'P').length}`);
+      console.log(`  Sales: ${filteredTrades.filter(t => t.transactionType === 'S').length}`);
 
       // 4. Detect cluster buys (multiple insiders buying same stock within 7 days)
       const tradesWithClusters = this.detectClusterBuys(filteredTrades);
@@ -192,6 +203,11 @@ export class InsiderTradeScraper {
       console.log(`Deduplicated ${records.length} records to ${uniqueRecords.length} unique records`);
     }
 
+    console.log(`\nAttempting to store ${uniqueRecords.length} trades:`);
+    uniqueRecords.forEach((r, i) => {
+      console.log(`  ${i+1}. ${r.ticker} ${r.transaction_type} ${r.transaction_value.toLocaleString()} - ${r.insider_name}`);
+    });
+
     // Use upsert to handle duplicates gracefully
     // This will update existing records or insert new ones based on the unique constraint
     const { data, error } = await supabaseAdmin
@@ -207,7 +223,12 @@ export class InsiderTradeScraper {
       throw error;
     }
 
-    console.log(`Stored ${uniqueRecords.length} trades in database`);
+    console.log(`\n✅ Successfully processed ${uniqueRecords.length} trades`);
+    console.log(`   Database returned ${data?.length || 0} records`);
+    if (data?.length !== uniqueRecords.length) {
+      console.log(`   Note: ${uniqueRecords.length - (data?.length || 0)} trades already existed and were updated`);
+    }
+    
     return data;
   }
 }
