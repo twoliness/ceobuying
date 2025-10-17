@@ -92,9 +92,12 @@ Development server runs on http://localhost:3000
 
 ### Environment Variables
 - Required: `SUPABASE_URL`, `SUPABASE_SECRET`, `SEC_USER_AGENT`
-- Optional: `MAX_FILINGS` (limits number of filings to process, default: all)
+- Optional:
+  - `MAX_FILINGS` (limits number of filings to process, default: all)
+  - `CRON_SECRET` (for securing cron endpoint)
+  - `NEXT_PUBLIC_APP_URL` (public app URL for metadata)
 - Use `.env` or `.env.local` for development
-- SEC requires User-Agent header (Company + Email format)
+- SEC requires User-Agent header (Company + Email format: "CompanyName contact@email.com")
 - Supabase credentials are pre-configured for production database
 
 ### Client vs Server Components
@@ -124,7 +127,9 @@ Development server runs on http://localhost:3000
 
 ### Deployment
 - **Web app**: Deploy to Vercel (free tier)
-- Set environment variables in platform
+- Set environment variables in Vercel dashboard
+- **Automated scraping**: Configured via `vercel.json` cron (every 2 hours)
+- Cron job hits `/api/scrape` endpoint with CRON_SECRET for authentication
 
 ## Common Tasks
 
@@ -156,3 +161,8 @@ Edit `src/lib/sec-edgar.js` for SEC API changes
 - **Rate limiting**: 500ms between filing fetches, 100ms between SEC API calls
 - **MAX_FILINGS env var**: Limits processing for testing (default: all filings)
 - **Upsert strategy**: Uses `onConflict` to update existing trades or insert new ones
+
+## Additional Scripts
+
+- **src/scripts/run-scraper.js**: CLI script to manually run the scraper (same as test-scraper.js)
+- Both scripts load environment variables and execute the full pipeline

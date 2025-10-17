@@ -3,7 +3,7 @@ export default function TradeCard({ trade }) {
   const valueInM = (trade.transaction_value / 1000000).toFixed(1);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white">

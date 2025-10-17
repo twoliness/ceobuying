@@ -109,6 +109,24 @@ export class SECEdgarClient {
 
       console.log(`✓ Parsed ${filings.length} valid Form 4 filings`);
 
+      // Debug: Show date range of filings
+      if (filings.length > 0) {
+        const dates = filings.map(f => f.filingDate).sort();
+        const oldestDate = dates[0];
+        const newestDate = dates[dates.length - 1];
+        console.log(`📅 Filing date range: ${oldestDate} to ${newestDate}`);
+        
+        // Show distribution by date
+        const dateCount = {};
+        filings.forEach(f => {
+          dateCount[f.filingDate] = (dateCount[f.filingDate] || 0) + 1;
+        });
+        console.log('📊 Filings by date:');
+        Object.keys(dateCount).sort().reverse().slice(0, 5).forEach(date => {
+          console.log(`   ${date}: ${dateCount[date]} filings`);
+        });
+      }
+
       return filings.slice(0, count);
 
     } catch (error) {

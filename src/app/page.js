@@ -9,6 +9,7 @@ export default function Home() {
   const [clusterBuys, setClusterBuys] = useState([]);
   const [insiderBuys, setInsiderBuys] = useState([]);
   const [insiderSales, setInsiderSales] = useState([]);
+  const [pennyStocks, setPennyStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -21,24 +22,27 @@ export default function Home() {
       setLoading(true);
 
       // Fetch all data in parallel
-      const [heroRes, clusterRes, buysRes, salesRes] = await Promise.all([
+      const [heroRes, clusterRes, buysRes, salesRes, pennyRes] = await Promise.all([
         fetch('/api/trades/hero'),
         fetch('/api/trades?type=cluster&limit=20'),
         fetch('/api/trades?type=buys&limit=20'),
-        fetch('/api/trades?type=sales&limit=20')
+        fetch('/api/trades?type=sales&limit=20'),
+        fetch('/api/trades/pennystocks?limit=20')
       ]);
 
-      const [heroData, clusterData, buysData, salesData] = await Promise.all([
+      const [heroData, clusterData, buysData, salesData, pennyData] = await Promise.all([
         heroRes.json(),
         clusterRes.json(),
         buysRes.json(),
-        salesRes.json()
+        salesRes.json(),
+        pennyRes.json()
       ]);
 
       setHeroTrades(heroData.trades || []);
       setClusterBuys(clusterData.trades || []);
       setInsiderBuys(buysData.trades || []);
       setInsiderSales(salesData.trades || []);
+      setPennyStocks(pennyData.trades || []);
       setLastUpdated(new Date());
 
     } catch (error) {
@@ -89,8 +93,8 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
               🔥 Top Trades Today
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {heroTrades.slice(0, 5).map((trade, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              {heroTrades.slice(0, 10).map((trade, idx) => (
                 <TradeCard key={idx} trade={trade} />
               ))}
             </div>
@@ -110,7 +114,7 @@ export default function Home() {
           {insiderBuys.length > 0 && (
             <TradesTable
               trades={insiderBuys}
-              title="Insider Buys (>$500K)"
+              title="Insider Buys"
               icon="📈"
             />
           )}
@@ -118,15 +122,24 @@ export default function Home() {
           {insiderSales.length > 0 && (
             <TradesTable
               trades={insiderSales}
-              title="Insider Sales (>$100K)"
+              title="Insider Sales"
               icon="📉"
+            />
+          )}
+
+          {pennyStocks.length > 0 && (
+            <TradesTable
+              trades={pennyStocks}
+              title="Penny Stocks"
+              icon="💰"
             />
           )}
         </div>
 
         {/* Empty State */}
         {heroTrades.length === 0 && clusterBuys.length === 0 &&
-         insiderBuys.length === 0 && insiderSales.length === 0 && (
+         insiderBuys.length === 0 && insiderSales.length === 0 && 
+         pennyStocks.length === 0 && (
           <div className="text-center py-16">
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">
               No insider trades found yet.

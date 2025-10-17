@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 /**
  * GET /api/trades/hero
- * Fetch top 5 trades for hero cards
+ * Fetch top 10 trades for hero cards
  */
 export async function GET() {
   try {
@@ -11,7 +11,7 @@ export async function GET() {
       .from('insider_trades')
       .select('*')
       .order('transaction_value', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (error) {
       console.error('Database error:', error);

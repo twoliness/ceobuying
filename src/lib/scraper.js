@@ -21,6 +21,10 @@ export class InsiderTradeScraper {
    */
   async runDailyScrape() {
     console.log('Starting daily insider trade scrape...');
+    console.log(`⏰ Current time: ${new Date().toISOString()}`);
+    console.log(`🇺🇸 SEC EDGAR operates on US Eastern Time (ET)`);
+    console.log(`📅 Today's date (UTC): ${new Date().toISOString().split('T')[0]}`);
+    console.log('');
 
     try {
       // 1. Fetch recent Form 4 filings
@@ -160,6 +164,27 @@ export class InsiderTradeScraper {
   }
 
   /**
+   * Format date to PostgreSQL DATE format (YYYY-MM-DD)
+   * Handles various input formats from SEC data
+   */
+  formatDate(dateString) {
+    if (!dateString) return null;
+    
+    // Remove any timezone info or extra characters
+    // Handles formats like: "2025-10-14", "2025-10-14-05:00", "2025-10-14T00:00:00"
+    const cleanDate = dateString.split('T')[0].split('-').slice(0, 3).join('-');
+    
+    // Validate it's a proper date
+    const date = new Date(cleanDate);
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date format: ${dateString}, using current date`);
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    return cleanDate;
+  }
+
+  /**
    * Store trades in database
    */
   async storeTrades(trades) {
@@ -169,16 +194,16 @@ export class InsiderTradeScraper {
     }
 
     const records = trades.map(trade => ({
-      filing_date: trade.filingDate,
-      trade_date: trade.tradeDate,
+      filing_date: this.formatDate(trade.filingDate),
+      trade_date: this.formatDate(trade.tradeDate),
       ticker: trade.ticker,
       company_name: trade.companyName,
       insider_name: trade.insiderName,
       insider_title: trade.insiderTitle,
       transaction_type: trade.transactionType,
       price: trade.price,
-      quantity: trade.quantity,
-      shares_owned_after: trade.sharesOwnedAfter,
+      quantity: Math.round(trade.quantity), // Round to integer
+      shares_owned_after: Math.round(trade.sharesOwnedAfter), // Round to integer
       delta_ownership: trade.deltaOwnership,
       transaction_value: trade.value,
       current_stock_price: trade.currentPrice,

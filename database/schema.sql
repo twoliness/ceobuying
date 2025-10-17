@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS insider_trades (
   insider_title VARCHAR(255),
   transaction_type VARCHAR(10) NOT NULL, -- 'P' for purchase, 'S' for sale
   price DECIMAL(10, 2),
-  quantity INTEGER NOT NULL,
-  shares_owned_after INTEGER,
+  quantity DECIMAL(15, 4) NOT NULL, -- supports fractional shares
+  shares_owned_after DECIMAL(15, 4), -- supports fractional shares
   delta_ownership DECIMAL(5, 2), -- percentage change
   transaction_value DECIMAL(15, 2) NOT NULL,
   current_stock_price DECIMAL(10, 2),
