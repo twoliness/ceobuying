@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -159,15 +160,16 @@ export default function TradesTable({ trades, title, icon }) {
                   return (
                     <React.Fragment key={companyKey}>
                       {/* Parent row - aggregated company data */}
-                      <TableRow>
+                      <TableRow
+                        onClick={() => toggleCompany(companyKey)}
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      >
                         <TableCell className="w-8">
-                          <button
-                            onClick={() => toggleCompany(companyKey)}
-                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
-                            aria-label="Close"
-                          >
-                            ✕
-                          </button>
+                          <ChevronDown
+                            className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400">
                           {formatDateTime(group.filing_date)}
@@ -181,12 +183,9 @@ export default function TradesTable({ trades, title, icon }) {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <button
-                            onClick={() => toggleCompany(companyKey)}
-                            className="text-sm font-medium text-gray-900 hover:underline cursor-pointer text-left"
-                          >
+                          <span className="text-sm font-medium text-gray-900">
                             {group.company_name}
-                          </button>
+                          </span>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400">
                           {/* Industry field - not in current schema */}
@@ -198,7 +197,7 @@ export default function TradesTable({ trades, title, icon }) {
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 whitespace-nowrap">
                             P - Purchase
                           </span>
                         </TableCell>
@@ -234,12 +233,12 @@ export default function TradesTable({ trades, title, icon }) {
 
                       {/* Expanded child rows - individual insider trades */}
                       {isExpanded && group.trades.map((trade, tradeIdx) => (
-                        <TableRow 
+                        <TableRow
                           key={`${companyKey}-${tradeIdx}`}
                           className="bg-white dark:bg-gray-800"
                         >
                           <TableCell></TableCell>
-                          <TableCell className="text-xs text-gray-500 dark:text-gray-500 pl-8">
+                          <TableCell className="text-xs text-gray-500 dark:text-gray-500">
                             {formatDateTime(trade.filing_date)}
                           </TableCell>
                           <TableCell className="text-xs text-gray-500 dark:text-gray-500">
@@ -248,7 +247,7 @@ export default function TradesTable({ trades, title, icon }) {
                           <TableCell className="text-xs text-gray-700 dark:text-gray-300">
                             {trade.ticker}
                           </TableCell>
-                          <TableCell className="text-xs text-gray-700 dark:text-gray-300 pl-8">
+                          <TableCell className="text-xs text-gray-700 dark:text-gray-300">
                             {trade.insider_name}
                             {trade.insider_title && (
                               <span className="text-gray-500 dark:text-gray-500 ml-1">
@@ -263,7 +262,7 @@ export default function TradesTable({ trades, title, icon }) {
                             1
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 whitespace-nowrap">
                               {trade.transaction_type}
                             </span>
                           </TableCell>
@@ -330,7 +329,7 @@ export default function TradesTable({ trades, title, icon }) {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${
+                    <span className={`px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${
                       trade.transaction_type === 'P'
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
