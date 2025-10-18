@@ -155,9 +155,7 @@ export default function Home() {
             <p className="mb-2">
               Data sourced from SEC EDGAR
             </p>
-            <p>
-              Built with Next.js and Tailwind CSS
-            </p>
+            ©2025
           </div>
         </div>
       </footer>
