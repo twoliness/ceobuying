@@ -64,21 +64,18 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-4 py-3">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-white dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-2 py-2">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                CeoBuying
+              <h1 className="text-md font-bold text-gray-900 dark:text-white uppercase">
+                Ceo Buying
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Daily insider trading tracker from SEC EDGAR
-              </p>
             </div>
             {lastUpdated && (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 Updated: {lastUpdated.toLocaleTimeString()}
               </div>
             )}
@@ -86,14 +83,14 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-2 py-4">
         {/* Hero Cards Section */}
         {heroTrades.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              🔥 Top Trades Today
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-6 uppercase">
+              Top trades today
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               {heroTrades.slice(0, 10).map((trade, idx) => (
                 <TradeCard key={idx} trade={trade} />
               ))}

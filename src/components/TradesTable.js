@@ -111,10 +111,9 @@ export default function TradesTable({ trades, title, icon }) {
   const isClusterTable = title === "Cluster Buys";
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <span>{icon}</span>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 uppercase dark:text-white flex items-center gap-2">
           <span>{title}</span>
         </h2>
       </div>
@@ -124,23 +123,23 @@ export default function TradesTable({ trades, title, icon }) {
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-gray-900">
               {isClusterTable && <TableHead className="w-8"></TableHead>}
-              <TableHead className="text-left text-xs font-semibold">Filing Date</TableHead>
-              <TableHead className="text-left text-xs font-semibold">Trade Date</TableHead>
-              <TableHead className="text-left text-xs font-semibold">Ticker</TableHead>
-              <TableHead className="text-left text-xs font-semibold">Company Name</TableHead>
-              <TableHead className="text-left text-xs font-semibold">Industry</TableHead>
-              {isClusterTable && <TableHead className="text-center text-xs font-semibold">Ins</TableHead>}
-              {!isClusterTable && <TableHead className="text-left text-xs font-semibold">Insider</TableHead>}
-              <TableHead className="text-center text-xs font-semibold">Trade Type</TableHead>
-              <TableHead className="text-right text-xs font-semibold">Price</TableHead>
-              <TableHead className="text-right text-xs font-semibold">Qty</TableHead>
-              <TableHead className="text-right text-xs font-semibold">Owned</TableHead>
-              <TableHead className="text-right text-xs font-semibold">ΔOwn</TableHead>
-              <TableHead className="text-right text-xs font-semibold">Value</TableHead>
-              <TableHead className="text-right text-xs font-semibold">1d</TableHead>
-              <TableHead className="text-right text-xs font-semibold">1w</TableHead>
-              <TableHead className="text-right text-xs font-semibold">1m</TableHead>
-              <TableHead className="text-right text-xs font-semibold">6m</TableHead>
+              <TableHead className="text-left text-xs font-medium">Filing Date</TableHead>
+              <TableHead className="text-left text-xs font-medium">Trade Date</TableHead>
+              <TableHead className="text-left text-xs font-medium">Ticker</TableHead>
+              <TableHead className="text-left text-xs font-medium">Company Name</TableHead>
+              <TableHead className="text-left text-xs font-medium">Industry</TableHead>
+              {isClusterTable && <TableHead className="text-center text-xs font-mediumd">Ins</TableHead>}
+              {!isClusterTable && <TableHead className="text-left text-xs font-medium">Insider</TableHead>}
+              <TableHead className="text-center text-xs font-medium">Trade Type</TableHead>
+              <TableHead className="text-right text-xs font-medium">Price</TableHead>
+              <TableHead className="text-right text-xs font-medium">Qty</TableHead>
+              <TableHead className="text-right text-xs font-medium">Owned</TableHead>
+              <TableHead className="text-right text-xs font-medium">ΔOwn</TableHead>
+              <TableHead className="text-right text-xs font-medium">Value</TableHead>
+              <TableHead className="text-right text-xs font-medium">1d</TableHead>
+              <TableHead className="text-right text-xs font-medium">1w</TableHead>
+              <TableHead className="text-right text-xs font-medium">1m</TableHead>
+              <TableHead className="text-right text-xs font-medium">6m</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -160,11 +159,11 @@ export default function TradesTable({ trades, title, icon }) {
                   return (
                     <React.Fragment key={companyKey}>
                       {/* Parent row - aggregated company data */}
-                      <TableRow className="bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/30">
+                      <TableRow>
                         <TableCell className="w-8">
                           <button
                             onClick={() => toggleCompany(companyKey)}
-                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
                             aria-label="Close"
                           >
                             ✕
@@ -177,14 +176,14 @@ export default function TradesTable({ trades, title, icon }) {
                           {formatDate(group.trade_date)}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          <span className="text-sm font-medium text-gray-900">
                             {group.ticker}
                           </span>
                         </TableCell>
                         <TableCell>
                           <button
                             onClick={() => toggleCompany(companyKey)}
-                            className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline text-left"
+                            className="text-sm font-medium text-gray-900 hover:underline cursor-pointer text-left"
                           >
                             {group.company_name}
                           </button>
@@ -194,12 +193,12 @@ export default function TradesTable({ trades, title, icon }) {
                           -
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-blue-600 rounded-full">
+                          <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-gray-900 rounded-full">
                             {group.insider_count}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                             P - Purchase
                           </span>
                         </TableCell>
@@ -215,20 +214,20 @@ export default function TradesTable({ trades, title, icon }) {
                         <TableCell className="text-sm text-right text-gray-600 dark:text-gray-400">
                           {formatPercent(group.trades[0]?.delta_ownership)}
                         </TableCell>
-                        <TableCell className="text-sm text-right font-bold text-gray-900 dark:text-white">
+                        <TableCell className="text-sm text-right font-semibold text-gray-900 dark:text-white">
                           {formatValue(group.total_value)}
                         </TableCell>
-                        <TableCell className="text-sm text-right text-green-600 dark:text-green-400">
+                        <TableCell className="text-sm text-right text-gray-700">
                           {/* Price change fields - not in current schema */}
                           -
                         </TableCell>
-                        <TableCell className="text-sm text-right text-green-600 dark:text-green-400">
+                        <TableCell className="text-sm text-right text-gray-700">
                           -
                         </TableCell>
-                        <TableCell className="text-sm text-right text-green-600 dark:text-green-400">
+                        <TableCell className="text-sm text-right text-gray-700">
                           -
                         </TableCell>
-                        <TableCell className="text-sm text-right text-green-600 dark:text-green-400">
+                        <TableCell className="text-sm text-right text-gray-700">
                           -
                         </TableCell>
                       </TableRow>
@@ -264,7 +263,7 @@ export default function TradesTable({ trades, title, icon }) {
                             1
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="px-2 py-0.5 text-xs font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                               {trade.transaction_type}
                             </span>
                           </TableCell>
@@ -280,7 +279,7 @@ export default function TradesTable({ trades, title, icon }) {
                           <TableCell className="text-xs text-right text-gray-600 dark:text-gray-400">
                             {formatPercent(trade.delta_ownership)}
                           </TableCell>
-                          <TableCell className="text-xs text-right font-semibold text-gray-700 dark:text-gray-300">
+                          <TableCell className="text-xs text-right font-medium text-gray-700 dark:text-gray-300">
                             {formatValue(trade.transaction_value)}
                           </TableCell>
                           <TableCell className="text-xs text-right text-gray-500 dark:text-gray-500">
@@ -312,7 +311,7 @@ export default function TradesTable({ trades, title, icon }) {
                     {formatDate(trade.trade_date)}
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {trade.ticker}
                     </span>
                   </TableCell>
@@ -331,7 +330,7 @@ export default function TradesTable({ trades, title, icon }) {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                    <span className={`px-2 py-1 text-xs font-medium rounded ${
                       trade.transaction_type === 'P'
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
@@ -351,7 +350,7 @@ export default function TradesTable({ trades, title, icon }) {
                   <TableCell className="text-sm text-right text-gray-600 dark:text-gray-400">
                     {formatPercent(trade.delta_ownership)}
                   </TableCell>
-                  <TableCell className="text-sm text-right font-semibold text-gray-900 dark:text-white">
+                  <TableCell className="text-sm text-right font-medium text-gray-900 dark:text-white">
                     {formatValue(trade.transaction_value)}
                   </TableCell>
                   <TableCell className="text-sm text-right text-gray-500 dark:text-gray-500">
