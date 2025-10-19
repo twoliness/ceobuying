@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS insider_trades (
   trade_date DATE NOT NULL,
   ticker VARCHAR(10) NOT NULL,
   company_name VARCHAR(255) NOT NULL,
+  industry VARCHAR(255),
   insider_name VARCHAR(255) NOT NULL,
   insider_title VARCHAR(255),
   transaction_type VARCHAR(10) NOT NULL, -- 'P' for purchase, 'S' for sale

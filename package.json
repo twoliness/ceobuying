@@ -7,7 +7,14 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "test:scraper": "node src/scripts/test-scraper.js"
+    "test:scraper": "node src/scripts/test-scraper.js",
+    "test:company": "node src/scripts/test-sec-company-data.js",
+    "test:sec": "node src/scripts/test-sec-endpoints.js",
+    "test:industry": "node src/scripts/test-industry-inference.js",
+    "test:sec-page": "node src/scripts/test-sec-company-page.js",
+    "debug:sec-html": "node src/scripts/debug-sec-html.js",
+    "test:sec-json": "node src/scripts/test-sec-json-api.js",
+    "debug:failed": "node src/scripts/debug-failed-companies.js"
   },
   "type": "module",
   "dependencies": {

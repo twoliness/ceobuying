@@ -65,7 +65,7 @@ Development server runs on http://localhost:3000
 2. Parses XML from discovered filing URLs (tries multiple patterns)
 3. Filters trades (currently capturing ALL trades, minBuyValue=0, minSaleValue=0)
 4. Detects cluster buys (2+ insiders buying same stock)
-5. Enriches with Yahoo Finance stock prices
+5. Enriches with Yahoo Finance stock prices and company info (industry/sector)
 6. Upserts to Supabase PostgreSQL (handles duplicates via unique constraint)
 7. Landing page fetches via API routes
 
@@ -76,12 +76,14 @@ Development server runs on http://localhost:3000
 - Manual scrape via POST to `/api/scrape`
 
 ### Database Schema
-- Trades stored with full details
+- Trades stored with full details including industry information
 - Unique constraint: `filing_date, trade_date, ticker, insider_name, transaction_type, transaction_value`
 - Upsert strategy prevents duplicate trades
 - Cluster buys detected (multiple insiders, same stock)
 - Job runs logged for monitoring (optional)
+- `industry` field fetched from Yahoo Finance company profile
 - `ai_summary` field reserved for future use
+- Migration available: `database/migrations/add_industry_column.sql`
 
 ## Important Patterns
 

@@ -25,6 +25,180 @@ export class SECEdgarClient {
   }
 
   /**
+   * Get company information from SEC EDGAR browse page (HTML fallback)
+   * Use this when JSON API fails (404)
+   * @param {string} cik - Company CIK
+   * @returns {Promise<Object>} Company info with industry
+   */
+  async getCompanyInfoFromHTML(cik) {
+    try {
+      await this.rateLimitDelay();
+      
+      // Use the EXACT URL format that shows SIC description (like Image 1)
+      const url = `${SEC_BASE_URL}/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&owner=include&count=40&hidefilings=0`;
+      
+      console.log(`      🌐 Fetching HTML: ${url}`);
+      
+      const response = await axios.get(url, {
+        headers: this.headers,
+        timeout: 10000
+      });
+      
+      const html = response.data;
+      
+      // Extract company name - multiple patterns
+      let companyName = null;
+      const namePatterns = [
+        /<span class="companyName">([^<]+?)(?:\s*CIK|<)/i,
+        /<span class="companyName">([^<]+)/i,
+        /<h1[^>]*>([^<]+?)<\/h1>/i
+      ];
+      
+      for (const pattern of namePatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          companyName = match[1].trim();
+          break;
+        }
+      }
+      
+      // Check if this is an individual person (not a company)
+      // Individuals don't have SIC codes
+      if (html.includes('State location:') && !html.includes('SIC:')) {
+        console.error(`      ⚠️  CIK ${cik}: This appears to be an individual person, not a company (no SIC code)`);
+        return null;
+      }
+      
+      // Extract SIC - try multiple patterns
+      let sicCode = null;
+      let sicDescription = null;
+      
+      const sicPatterns = [
+        // Pattern 1: Standard format with link
+        /SIC[^>]*>.*?<a[^>]*>(\d+)\s*-\s*([^<]+)<\/a>/is,
+        // Pattern 2: Simpler format
+        /SIC:\s*<\/span>\s*(\d+)\s*-\s*([^<\n]+)/i,
+        // Pattern 3: With Standard Industrial Classification text
+        /Standard Industrial Classification[^>]*>\s*<a[^>]*>([^<]+)<\/a>/is
+      ];
+      
+      for (const pattern of sicPatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          if (match.length >= 3) {
+            sicCode = match[1].trim();
+            sicDescription = match[2].trim();
+          } else if (match.length >= 2) {
+            sicDescription = match[1].trim();
+          }
+          if (sicDescription) break;
+        }
+      }
+      
+      // If we still don't have SIC, try one more aggressive pattern
+      if (!sicDescription && html.includes('SIC')) {
+        // Look for any number followed by dash and text after "SIC"
+        const sicMatch = html.match(/SIC[^\d]*(\d+)\s*-\s*([^<\n]{10,100})/i);
+        if (sicMatch) {
+          sicCode = sicMatch[1].trim();
+          sicDescription = sicMatch[2].trim();
+        }
+      }
+      
+      if (!sicDescription) {
+        console.error(`      ⚠️  CIK ${cik}: Could not extract SIC from HTML`);
+        return null;
+      }
+      
+      return {
+        cik,
+        companyName: companyName || 'Unknown',
+        sicCode,
+        industry: sicDescription,
+        source: 'html'
+      };
+      
+    } catch (error) {
+      console.error(`      ✗ CIK ${cik} HTML: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get company information from SEC using the submissions JSON API
+   * This includes SIC code and industry - exactly what OpenInsider uses!
+   * Falls back to HTML parsing if JSON fails
+   * @param {string} cik - Company CIK
+   * @returns {Promise<Object>} Company info with industry
+   */
+  async getCompanyInfo(cik) {
+    // Try JSON API first
+    const jsonInfo = await this.getCompanyInfoFromJSON(cik);
+    if (jsonInfo) return jsonInfo;
+    
+    // Fall back to HTML parsing
+    console.log(`      🔄 Trying HTML fallback for CIK ${cik}...`);
+    return await this.getCompanyInfoFromHTML(cik);
+  }
+
+  /**
+   * Get company info from JSON API (preferred method)
+   */
+  async getCompanyInfoFromJSON(cik) {
+    try {
+      await this.rateLimitDelay();
+      
+      // Pad CIK to 10 digits
+      const paddedCik = String(cik).padStart(10, '0');
+      
+      // Use SEC's JSON API - much more reliable than HTML parsing!
+      const url = `https://data.sec.gov/submissions/CIK${paddedCik}.json`;
+      
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip, deflate',
+          'Host': 'data.sec.gov'
+        },
+        timeout: 10000
+      });
+      
+      const data = response.data;
+      
+      // Validate we have the required fields
+      if (!data.sicDescription) {
+        console.error(`      ⚠️  CIK ${cik}: No sicDescription field in response`);
+        return null;
+      }
+      
+      return {
+        cik: data.cik,
+        companyName: data.name,
+        sicCode: data.sic,
+        industry: data.sicDescription, // This is what OpenInsider displays!
+        state: data.stateOfIncorporation,
+        fiscalYearEnd: data.fiscalYearEnd
+      };
+      
+    } catch (error) {
+      // Log more detailed error information
+      if (error.response) {
+        // Don't log 404s as errors - they're expected and trigger HTML fallback
+        if (error.response.status === 404) {
+          return null; // Silently return null for 404, will trigger HTML fallback
+        }
+        console.error(`      ✗ CIK ${cik}: HTTP ${error.response.status} - ${error.response.statusText}`);
+      } else if (error.code === 'ECONNABORTED') {
+        console.error(`      ✗ CIK ${cik}: Request timeout`);
+      } else {
+        console.error(`      ✗ CIK ${cik}: ${error.message}`);
+      }
+      return null;
+    }
+  }
+
+  /**
    * Rate limiting helper - ensures we don't exceed SEC's rate limits
    */
   async rateLimitDelay() {
@@ -372,11 +546,11 @@ export class SECEdgarClient {
         return null;
       }
 
-      // Issuer (company) information
+      // Issuer (company) information - THIS IS THE COMPANY CIK, NOT THE INSIDER'S!
       const issuer = doc.issuer;
       const ticker = issuer?.issuerTradingSymbol || '';
       const companyName = issuer?.issuerName || '';
-      const cik = issuer?.issuerCik || '';
+      const companyCik = issuer?.issuerCik || ''; // This is the COMPANY's CIK
 
       // Reporting owner (insider) information
       // Handle both single owner and array of owners
@@ -387,6 +561,8 @@ export class SECEdgarClient {
                          owner?.reportingOwnerId?.name ||
                          owner?.name ||
                          'Unknown';
+      
+      const insiderCik = owner?.reportingOwnerId?.rptOwnerCik || ''; // This is the INSIDER's CIK (person)
       
       const insiderTitle = owner?.reportingOwnerRelationship?.officerTitle ||
                           owner?.reportingOwnerRelationship?.directorTitle ||
@@ -406,7 +582,8 @@ export class SECEdgarClient {
           filingDate: doc.periodOfReport || '',
           ticker,
           companyName,
-          cik,
+          companyCik,     // Company's CIK (for fetching industry)
+          insiderCik,     // Insider's CIK (person who filed)
           insiderName,
           insiderTitle,
           trades: []
@@ -453,7 +630,8 @@ export class SECEdgarClient {
         return {
           ticker,
           companyName,
-          cik,
+          companyCik,  // Company's CIK (for industry lookup)
+          insiderCik,  // Insider's CIK (person)
           insiderName,
           insiderTitle,
           securityTitle,
@@ -472,7 +650,8 @@ export class SECEdgarClient {
         filingDate: doc.periodOfReport || '',
         ticker,
         companyName,
-        cik,
+        companyCik,  // Company's CIK (for industry lookup)
+        insiderCik,  // Insider's CIK (person)
         insiderName,
         insiderTitle,
         trades: trades // Already filtered in map above

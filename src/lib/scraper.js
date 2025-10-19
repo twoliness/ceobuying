@@ -1,6 +1,7 @@
 import { SECEdgarClient } from './sec-edgar.js';
 import { StockPriceClient } from './stock-price.js';
 import { supabaseAdmin } from './supabase.js';
+import { inferIndustryFromName } from './industry-mapper.js';
 
 /**
  * Main scraper orchestrator
@@ -67,7 +68,7 @@ export class InsiderTradeScraper {
               ...t,
               filingDate: filing.filingDate,
               accessionNumber: filing.accessionNumber,
-              cik: filing.cik
+              companyCik: t.companyCik || filing.cik  // Use company CIK from trade, fallback to filing CIK
             })));
           } else {
             console.log(`  No trades found`);
@@ -101,17 +102,131 @@ export class InsiderTradeScraper {
       // 4. Detect cluster buys (multiple insiders buying same stock within 7 days)
       const tradesWithClusters = this.detectClusterBuys(filteredTrades);
 
-      // 5. Enrich with stock prices
+      // 5. Enrich with stock prices and company info
       const uniqueTickers = [...new Set(tradesWithClusters.map(t => t.ticker))];
-      console.log(`Fetching prices for ${uniqueTickers.length} unique tickers`);
+      const uniqueCIKs = [...new Set(tradesWithClusters.map(t => t.companyCik).filter(Boolean))];
+      
+      console.log(`\n📊 Fetching prices and company info for ${uniqueTickers.length} unique tickers`);
+      console.log(`   Tickers: ${uniqueTickers.join(', ')}`);
+      console.log(`   Using ${uniqueCIKs.length} COMPANY CIKs for SEC data (not insider CIKs)\n`);
 
+      // Create a map of CIK to ticker for efficient lookup
+      const cikToTicker = {};
+      const tickerToCompany = {};
+      tradesWithClusters.forEach(trade => {
+        if (trade.companyCik && trade.ticker) {
+          cikToTicker[trade.companyCik] = trade.ticker;
+          tickerToCompany[trade.ticker] = {
+            name: trade.companyName,
+            cik: trade.companyCik  // This is the COMPANY's CIK
+          };
+        }
+      });
+
+      // Fetch company info from SEC (includes industry via SIC code)
+      console.log('  🔍 Fetching industry data from SEC EDGAR company pages...');
+      const secCompanyInfo = {};
+      const failedCIKs = [];
+      let secSuccessCount = 0;
+      
+      for (const cik of uniqueCIKs) {
+        const ticker = cikToTicker[cik];
+        console.log(`    🔍 Fetching ${ticker} (CIK: ${cik})...`);
+        
+        const info = await this.secClient.getCompanyInfo(cik);
+        
+        if (info && info.industry) {
+          secCompanyInfo[ticker] = info;
+          secSuccessCount++;
+          console.log(`    ✓ ${ticker}: "${info.industry}"`);
+        } else {
+          const companyName = tickerToCompany[ticker]?.name || 'Unknown';
+          failedCIKs.push({ 
+            cik, 
+            ticker, 
+            companyName,
+            reason: info ? 'No industry field' : 'API failed' 
+          });
+          console.log(`    ✗ ${ticker} (${companyName}): Failed to fetch company info`);
+        }
+        
+        // Rate limit: 100ms between requests
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      console.log(`  ✓ Successfully fetched ${secSuccessCount}/${uniqueCIKs.length} companies from SEC`);
+      
+      if (failedCIKs.length > 0) {
+        console.log(`\n  ⚠️  Failed to fetch ${failedCIKs.length} companies from SEC JSON API:`);
+        failedCIKs.forEach(({ ticker, cik, companyName, reason }) => {
+          console.log(`     ${ticker} (${companyName}) - CIK: ${cik} - ${reason}`);
+          console.log(`        URL: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&owner=include&count=40&hidefilings=0`);
+        });
+        
+        console.log(`\n  🔧 To debug these companies, run:`);
+        console.log(`     npm run debug:failed`);
+        console.log(`     Or check the URLs above manually\n`);
+        
+        // Try to infer industry from company name for failed companies
+        console.log(`\n  🧠 Attempting to infer industry from company names...`);
+        let inferredCount = 0;
+        
+        for (const { ticker, cik } of failedCIKs) {
+          const companyInfo = tickerToCompany[ticker];
+          if (companyInfo && companyInfo.name) {
+            const inferredIndustry = inferIndustryFromName(companyInfo.name);
+            if (inferredIndustry) {
+              secCompanyInfo[ticker] = {
+                cik,
+                companyName: companyInfo.name,
+                industry: inferredIndustry,
+                source: 'inferred'
+              };
+              inferredCount++;
+              console.log(`     ✓ ${ticker} (${companyInfo.name}): "${inferredIndustry}"`);
+            } else {
+              console.log(`     ✗ ${ticker}: Could not infer industry from name`);
+            }
+          }
+        }
+        
+        if (inferredCount > 0) {
+          console.log(`  ✓ Inferred industry for ${inferredCount}/${failedCIKs.length} failed companies`);
+        }
+      }
+      console.log('');
+
+      // Fetch stock prices
       const stockPrices = await this.stockClient.getBatchStockPrices(uniqueTickers);
 
-      const enrichedTrades = tradesWithClusters.map(trade => ({
-        ...trade,
-        currentPrice: stockPrices[trade.ticker]?.currentPrice,
-        priceChange7d: stockPrices[trade.ticker]?.priceChange7d
-      }));
+      // Debug: Show what company info we got
+      console.log('\n🔍 DEBUG: Company Info Results:');
+      for (const ticker of uniqueTickers) {
+        const info = secCompanyInfo[ticker];
+        if (info) {
+          console.log(`  ✓ ${ticker}: Industry = "${info.industry || 'NULL'}"`);
+        } else {
+          console.log(`  ✗ ${ticker}: No company info found`);
+        }
+      }
+      console.log('');
+
+      const enrichedTrades = tradesWithClusters.map(trade => {
+        const industry = secCompanyInfo[trade.ticker]?.industry || null;
+        return {
+          ...trade,
+          currentPrice: stockPrices[trade.ticker]?.currentPrice,
+          priceChange7d: stockPrices[trade.ticker]?.priceChange7d,
+          industry: industry
+        };
+      });
+
+      // Debug: Show first 3 enriched trades
+      console.log('🔍 DEBUG: First 3 Enriched Trades:');
+      enrichedTrades.slice(0, 3).forEach((trade, idx) => {
+        console.log(`  ${idx + 1}. ${trade.ticker} - Industry: "${trade.industry || 'NULL'}"`);
+      });
+      console.log('');
 
       // 6. Store in database
       await this.storeTrades(enrichedTrades);
@@ -198,6 +313,7 @@ export class InsiderTradeScraper {
       trade_date: this.formatDate(trade.tradeDate),
       ticker: trade.ticker,
       company_name: trade.companyName,
+      industry: trade.industry || null,
       insider_name: trade.insiderName,
       insider_title: trade.insiderTitle,
       transaction_type: trade.transactionType,
@@ -211,7 +327,7 @@ export class InsiderTradeScraper {
       ai_summary: null,
       is_cluster_buy: trade.isClusterBuy || false,
       cluster_count: trade.clusterCount || 1,
-      form_4_url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${trade.cik}&type=4&dateb=&owner=exclude&count=1`
+      form_4_url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${trade.companyCik}&type=4&dateb=&owner=exclude&count=1`
     }));
 
     // Deduplicate records within this batch using the same unique constraint fields
@@ -228,10 +344,17 @@ export class InsiderTradeScraper {
       console.log(`Deduplicated ${records.length} records to ${uniqueRecords.length} unique records`);
     }
 
-    console.log(`\nAttempting to store ${uniqueRecords.length} trades:`);
-    uniqueRecords.forEach((r, i) => {
-      console.log(`  ${i+1}. ${r.ticker} ${r.transaction_type} ${r.transaction_value.toLocaleString()} - ${r.insider_name}`);
+    console.log(`\n💾 Attempting to store ${uniqueRecords.length} trades:`);
+    
+    // Debug: Show first 3 records with industry data
+    console.log('\n🔍 DEBUG: First 3 Records Being Saved:');
+    uniqueRecords.slice(0, 3).forEach((r, i) => {
+      console.log(`  ${i+1}. ${r.ticker} ${r.transaction_type} ${r.transaction_value.toLocaleString()}`);
+      console.log(`     Insider: ${r.insider_name}`);
+      console.log(`     Industry: "${r.industry || 'NULL'}"`);
+      console.log(`     Company: ${r.company_name}`);
     });
+    console.log('');
 
     // Use upsert to handle duplicates gracefully
     // This will update existing records or insert new ones based on the unique constraint
