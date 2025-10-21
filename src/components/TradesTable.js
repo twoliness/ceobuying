@@ -10,23 +10,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { 
+  getTransactionLabel, 
+  getTransactionBadgeClasses,
+  isPurchase 
+} from '@/lib/transaction-codes';
 
 export default function TradesTable({ trades, title, icon }) {
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
 
   const formatValue = (value) => {
     if (!value) return '-';
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(2)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
+    const absValue = Math.abs(value);
+    if (absValue >= 1000000) {
+      return `$${(absValue / 1000000).toFixed(2)}M`;
+    } else if (absValue >= 1000) {
+      return `$${(absValue / 1000).toFixed(0)}K`;
     }
-    return `$${value.toFixed(2)}`;
+    return `$${absValue.toFixed(2)}`;
   };
 
   const formatNumber = (num) => {
     if (!num) return '-';
-    return num.toLocaleString();
+    return Math.abs(num).toLocaleString();
   };
 
   const formatDate = (date) => {
@@ -55,32 +61,36 @@ export default function TradesTable({ trades, title, icon }) {
     return `${sign}${value.toFixed(0)}%`;
   };
 
-  // Group trades by company for cluster buys
-  const groupedTrades = title === "Cluster Buys" ? groupTradesByCompany(trades) : null;
+  // Group trades by company for cluster table
+  const groupedTrades = title === "Clusters" ? groupTradesByCompany(trades) : null;
 
   function groupTradesByCompany(trades) {
     const groups = {};
-    
+
     trades.forEach(trade => {
-      const key = `${trade.ticker}-${trade.company_name}`;
+      // Group by ticker + transaction_type (so cluster buys and cluster sells are separate)
+      const key = `${trade.ticker}-${trade.transaction_type}-${trade.company_name}`;
       if (!groups[key]) {
         groups[key] = {
           ticker: trade.ticker,
           company_name: trade.company_name,
+          industry: trade.industry,
+          transaction_type: trade.transaction_type,
           filing_date: trade.filing_date,
           trade_date: trade.trade_date,
           trades: [],
           total_value: 0,
           total_quantity: 0,
           avg_price: 0,
-          insider_count: 0
+          insider_count: 0,
+          cluster_count: trade.cluster_count || 0
         };
       }
-      
+
       groups[key].trades.push(trade);
       groups[key].total_value += trade.transaction_value || 0;
-      groups[key].total_quantity += trade.quantity || 0;
-      
+      groups[key].total_quantity += Math.abs(trade.quantity || 0);
+
       // Get the most recent dates
       if (!groups[key].filing_date || new Date(trade.filing_date) > new Date(groups[key].filing_date)) {
         groups[key].filing_date = trade.filing_date;
@@ -93,7 +103,8 @@ export default function TradesTable({ trades, title, icon }) {
     // Calculate averages and counts
     Object.values(groups).forEach(group => {
       group.insider_count = group.trades.length;
-      group.avg_price = group.total_value / group.total_quantity;
+      group.avg_price = Math.abs(group.total_value) / group.total_quantity;
+      group.cluster_count = group.trades[0]?.cluster_count || group.insider_count;
     });
 
     return Object.values(groups);
@@ -109,13 +120,16 @@ export default function TradesTable({ trades, title, icon }) {
     setExpandedCompanies(newExpanded);
   };
 
-  const isClusterTable = title === "Cluster Buys";
+  const isClusterTable = title === "Clusters";
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <h2 className="text-sm font-semibold text-gray-900 uppercase dark:text-white flex items-center gap-2">
           <span>{title}</span>
+          {isClusterTable && (
+            <span className="text-xs font-normal text-gray-500 normal-case">(Last 30 Days)</span>
+          )}
         </h2>
       </div>
 
@@ -129,7 +143,7 @@ export default function TradesTable({ trades, title, icon }) {
               <TableHead className="text-left text-xs font-medium w-20 min-w-20">Ticker</TableHead>
               <TableHead className="text-left text-xs font-medium min-w-48">Company Name</TableHead>
               <TableHead className="text-left text-xs font-medium w-24 min-w-24">Industry</TableHead>
-              {isClusterTable && <TableHead className="text-center text-xs font-medium w-12 min-w-12">Ins</TableHead>}
+              {isClusterTable && <TableHead className="text-center text-xs font-medium w-12 min-w-12">Insiders</TableHead>}
               {!isClusterTable && <TableHead className="text-left text-xs font-medium min-w-48">Insider</TableHead>}
               <TableHead className="text-center text-xs font-medium w-32 min-w-32">Trade Type</TableHead>
               <TableHead className="text-right text-xs font-medium w-20 min-w-20">Price</TableHead>
@@ -147,15 +161,16 @@ export default function TradesTable({ trades, title, icon }) {
             {trades.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={isClusterTable ? 17 : 16} className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  No trades found
+                  {isClusterTable ? 'No clusters found in the last 30 days' : 'No trades found'}
                 </TableCell>
               </TableRow>
             ) : isClusterTable && groupedTrades ? (
               // Cluster table with expandable rows
               <>
                 {groupedTrades.map((group, idx) => {
-                  const companyKey = `${group.ticker}-${group.company_name}`;
+                  const companyKey = `${group.ticker}-${group.transaction_type}-${group.company_name}`;
                   const isExpanded = expandedCompanies.has(companyKey);
+                  const isAcquisition = isPurchase(group.transaction_type);
                   
                   return (
                     <React.Fragment key={companyKey}>
@@ -188,24 +203,25 @@ export default function TradesTable({ trades, title, icon }) {
                           </span>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                          {/* Industry field - not in current schema */}
-                          -
+                          {group.industry || '-'}
                         </TableCell>
                         <TableCell className="text-center w-12 min-w-12">
-                          <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-gray-900 rounded-full">
-                            {group.insider_count}
+                          <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white rounded-full ${
+                            isAcquisition ? 'bg-orange-600' : 'bg-purple-600'
+                          }`}>
+                            {group.cluster_count}
                           </span>
                         </TableCell>
                         <TableCell className="text-center w-32 min-w-32">
-                          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 whitespace-nowrap">
-                            P - Purchase
+                          <span className={getTransactionBadgeClasses(group.transaction_type)}>
+                            {getTransactionLabel(group.transaction_type)}
                           </span>
                         </TableCell>
                         <TableCell className="text-sm text-right text-gray-900 dark:text-white w-20 min-w-20">
                           ${group.avg_price?.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-sm text-right text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                          +{formatNumber(group.total_quantity)}
+                          {isAcquisition ? '+' : '-'}{formatNumber(group.total_quantity)}
                         </TableCell>
                         <TableCell className="text-sm text-right text-gray-600 dark:text-gray-400 w-24 min-w-24">
                           {formatNumber(group.trades[0]?.shares_owned_after)}
@@ -217,7 +233,6 @@ export default function TradesTable({ trades, title, icon }) {
                           {formatValue(group.total_value)}
                         </TableCell>
                         <TableCell className="text-sm text-right text-gray-700 w-12 min-w-12">
-                          {/* Price change fields - not in current schema */}
                           -
                         </TableCell>
                         <TableCell className="text-sm text-right text-gray-700 w-12 min-w-12">
@@ -256,21 +271,21 @@ export default function TradesTable({ trades, title, icon }) {
                             )}
                           </TableCell>
                           <TableCell className="text-xs text-gray-500 dark:text-gray-500 w-24 min-w-24">
-                            -
+                            {trade.industry || '-'}
                           </TableCell>
                           <TableCell className="text-center text-xs text-gray-500 dark:text-gray-500 w-12 min-w-12">
                             1
                           </TableCell>
                           <TableCell className="text-center w-32 min-w-32">
-                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 whitespace-nowrap">
-                              {trade.transaction_type}
+                            <span className={getTransactionBadgeClasses(trade.transaction_type)}>
+                              {getTransactionLabel(trade.transaction_type)}
                             </span>
                           </TableCell>
                           <TableCell className="text-xs text-right text-gray-700 dark:text-gray-300 w-20 min-w-20">
                             ${trade.price?.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-xs text-right text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                            +{formatNumber(trade.quantity)}
+                            {isPurchase(trade.transaction_type) ? '+' : '-'}{formatNumber(trade.quantity)}
                           </TableCell>
                           <TableCell className="text-xs text-right text-gray-600 dark:text-gray-400 w-24 min-w-24">
                             {formatNumber(trade.shares_owned_after)}
@@ -318,7 +333,7 @@ export default function TradesTable({ trades, title, icon }) {
                     {trade.company_name}
                   </TableCell>
                   <TableCell className="text-sm text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                    -
+                    {trade.industry || '-'}
                   </TableCell>
                   <TableCell className="text-sm text-gray-900 dark:text-white min-w-48">
                     {trade.insider_name}
@@ -329,19 +344,15 @@ export default function TradesTable({ trades, title, icon }) {
                     )}
                   </TableCell>
                   <TableCell className="text-center w-32 min-w-32">
-                    <span className={`px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${
-                      trade.transaction_type === 'P'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                    }`}>
-                      {trade.transaction_type === 'P' ? 'P - Purchase' : 'S - Sale'}
+                    <span className={getTransactionBadgeClasses(trade.transaction_type)}>
+                      {getTransactionLabel(trade.transaction_type)}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm text-right text-gray-900 dark:text-white w-20 min-w-20">
                     ${trade.price?.toFixed(2)}
                   </TableCell>
                   <TableCell className="text-sm text-right text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                    {trade.transaction_type === 'P' ? '+' : '-'}{formatNumber(trade.quantity)}
+                    {isPurchase(trade.transaction_type) ? '+' : '-'}{formatNumber(trade.quantity)}
                   </TableCell>
                   <TableCell className="text-sm text-right text-gray-600 dark:text-gray-400 w-24 min-w-24">
                     {formatNumber(trade.shares_owned_after)}

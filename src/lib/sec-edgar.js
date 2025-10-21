@@ -212,87 +212,121 @@ export class SECEdgarClient {
 
   /**
    * Fetch recent Form 4 filings from SEC EDGAR
-   * @param {number} count - Number of filings to fetch
+   * @param {number} count - Number of filings to fetch (will paginate if > 100)
    * @returns {Promise<Array>} Array of Form 4 filing URLs
    */
   async getRecentForm4Filings(count = 100) {
     try {
-      await this.rateLimitDelay();
-      
-      // Use the RSS/Atom feed which is more reliable and doesn't have date restrictions
-      const atomUrl = `${SEC_BASE_URL}/cgi-bin/browse-edgar?action=getcurrent&type=4&company=&dateb=&owner=include&start=0&count=${count}&output=atom`;
-
       console.log('Fetching recent Form 4 filings from SEC RSS feed...');
       console.log('Using User-Agent:', this.userAgent);
+      
+      const allFilings = [];
+      const pageSize = 100; // SEC's max per request
+      const numPages = Math.ceil(count / pageSize);
+      
+      console.log(`📄 Will fetch ${numPages} page(s) to get up to ${count} filings`);
+      
+      for (let page = 0; page < numPages; page++) {
+        const start = page * pageSize;
+        
+        await this.rateLimitDelay();
+        
+        // Use the RSS/Atom feed with pagination
+        const atomUrl = `${SEC_BASE_URL}/cgi-bin/browse-edgar?action=getcurrent&type=4&company=&dateb=&owner=include&start=${start}&count=${pageSize}&output=atom`;
+        
+        if (page > 0) {
+          console.log(`   Fetching page ${page + 1}/${numPages} (start=${start})...`);
+        }
 
-      const response = await axios.get(atomUrl, {
-        headers: this.headers,
-        timeout: 30000
-      });
+        const response = await axios.get(atomUrl, {
+          headers: this.headers,
+          timeout: 30000
+        });
 
-      // Parse the Atom XML feed
-      const parsed = await parseXml(response.data);
-      const entries = parsed?.feed?.entry || [];
+        // Parse the Atom XML feed
+        const parsed = await parseXml(response.data);
+        const entries = parsed?.feed?.entry || [];
 
-      console.log(`Found ${entries.length} Form 4 entries in RSS feed`);
+        if (page === 0) {
+          console.log(`Found ${entries.length} Form 4 entries in first page`);
+        }
 
-      if (entries.length === 0) {
-        throw new Error('No Form 4 filings found in RSS feed');
-      }
+        if (entries.length === 0) {
+          console.log(`   No more entries found at page ${page + 1}, stopping pagination`);
+          break; // No more results
+        }
 
-      const filings = [];
+        const pageFilings = [];
 
-      for (const entry of entries) {
-        try {
-          const title = entry.title?.[0] || '';
-          const link = entry.link?.[0]?.$ ?.href || '';
-          const updated = entry.updated?.[0] || '';
-          const summary = entry.summary?.[0];
+        for (const entry of entries) {
+          try {
+            const title = entry.title?.[0] || '';
+            const link = entry.link?.[0]?.$ ?.href || '';
+            const updated = entry.updated?.[0] || '';
+            const summary = entry.summary?.[0];
 
-          // Get the summary text (could be in _ property or directly)
-          const summaryText = typeof summary === 'object' ? summary._ || '' : summary || '';
+            // Get the summary text (could be in _ property or directly)
+            const summaryText = typeof summary === 'object' ? summary._ || '' : summary || '';
 
-          // Extract filing info from title: "4 - CompanyName (CIK)"
-          const titleMatch = title.match(/^4\s+-\s+(.+?)\s+\((\d+)\)/);
-          const companyName = titleMatch ? titleMatch[1].trim() : '';
-          const cik = titleMatch ? titleMatch[2] : '';
+            // Extract filing info from title: "4 - CompanyName (CIK)"
+            const titleMatch = title.match(/^4\s+-\s+(.+?)\s+\((\d+)\)/);
+            const companyName = titleMatch ? titleMatch[1].trim() : '';
+            const cik = titleMatch ? titleMatch[2] : '';
 
-          // Extract accession number from link
-          const accessionMatch = link.match(/accession[_-]number=(\d{10}-\d{2}-\d{6})/i) ||
-                                link.match(/(\d{10}-\d{2}-\d{6})/);
-          const accessionNumber = accessionMatch ? accessionMatch[1] : '';
+            // Extract accession number from link
+            const accessionMatch = link.match(/accession[_-]number=(\d{10}-\d{2}-\d{6})/i) ||
+                                  link.match(/(\d{10}-\d{2}-\d{6})/);
+            const accessionNumber = accessionMatch ? accessionMatch[1] : '';
 
-          // Get filing date
-          const filingDate = updated.split('T')[0];
+            // Get filing date
+            const filingDate = updated.split('T')[0];
 
-          if (accessionNumber && cik) {
-            filings.push({
-              companyName,
-              cik,
-              accessionNumber,
-              filingDate,
-              title,
-              url: link
-            });
+            if (accessionNumber && cik) {
+              pageFilings.push({
+                companyName,
+                cik,
+                accessionNumber,
+                filingDate,
+                title,
+                url: link
+              });
+            }
+          } catch (entryError) {
+            console.error('Error parsing entry:', entryError.message);
+            continue;
           }
-        } catch (entryError) {
-          console.error('Error parsing entry:', entryError.message);
-          continue;
+        }
+        
+        allFilings.push(...pageFilings);
+        
+        if (page > 0) {
+          console.log(`   ✓ Page ${page + 1}: ${pageFilings.length} filings (total: ${allFilings.length})`);
+        }
+        
+        // If we got less than pageSize, there are no more results
+        if (entries.length < pageSize) {
+          console.log(`   Received less than ${pageSize} entries, no more pages available`);
+          break;
+        }
+        
+        // Don't rate limit on the last iteration
+        if (page < numPages - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
-
-      console.log(`✓ Parsed ${filings.length} valid Form 4 filings`);
+      
+      console.log(`✓ Parsed ${allFilings.length} valid Form 4 filings from ${Math.min(numPages, Math.ceil(allFilings.length / pageSize))} page(s)`);
 
       // Debug: Show date range of filings
-      if (filings.length > 0) {
-        const dates = filings.map(f => f.filingDate).sort();
+      if (allFilings.length > 0) {
+        const dates = allFilings.map(f => f.filingDate).sort();
         const oldestDate = dates[0];
         const newestDate = dates[dates.length - 1];
         console.log(`📅 Filing date range: ${oldestDate} to ${newestDate}`);
         
         // Show distribution by date
         const dateCount = {};
-        filings.forEach(f => {
+        allFilings.forEach(f => {
           dateCount[f.filingDate] = (dateCount[f.filingDate] || 0) + 1;
         });
         console.log('📊 Filings by date:');
@@ -301,7 +335,7 @@ export class SECEdgarClient {
         });
       }
 
-      return filings.slice(0, count);
+      return allFilings.slice(0, count);
 
     } catch (error) {
       console.error('Error fetching Form 4 filings:', error.message);

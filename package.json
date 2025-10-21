@@ -8,13 +8,19 @@
     "start": "next start",
     "lint": "eslint",
     "test:scraper": "node src/scripts/test-scraper.js",
+    "scraper:month": "node src/scripts/scraper-one-month.js",
     "test:company": "node src/scripts/test-sec-company-data.js",
     "test:sec": "node src/scripts/test-sec-endpoints.js",
     "test:industry": "node src/scripts/test-industry-inference.js",
     "test:sec-page": "node src/scripts/test-sec-company-page.js",
     "debug:sec-html": "node src/scripts/debug-sec-html.js",
     "test:sec-json": "node src/scripts/test-sec-json-api.js",
-    "debug:failed": "node src/scripts/debug-failed-companies.js"
+    "debug:failed": "node src/scripts/debug-failed-companies.js",
+    "check:clusters": "node src/scripts/check-clusters.js",
+    "test:hero": "node src/scripts/test-hero-thisweek.js",
+    "debug:clusters": "node src/scripts/debug-cluster-detection.js",
+    "debug:clusters-ui": "node src/scripts/debug-clusters.js",
+    "fix:clusters": "node src/scripts/fix-clusters.js"
   },
   "type": "module",
   "dependencies": {
