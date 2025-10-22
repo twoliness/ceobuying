@@ -210,7 +210,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600 dark:text-gray-400 text-xs">
             <p className="mb-1">
-              Data sourced from SEC EDGAR • Auto-refreshes every 5 minutes
+              Data sourced from SEC EDGAR
             </p>
             ©2025
           </div>
