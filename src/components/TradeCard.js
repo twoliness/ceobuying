@@ -1,8 +1,10 @@
-import { isPurchase, getTransactionType } from '@/lib/transaction-codes';
+import { isPurchase, getTransactionType, getTransactionDescription } from '@/lib/transaction-codes';
+import { Tooltip } from '@/components/ui/tooltip';
 
 export default function TradeCard({ trade }) {
   const isAcquisition = isPurchase(trade.transaction_type);
   const transactionType = getTransactionType(trade.transaction_type);
+  const transactionDescription = getTransactionDescription(trade.transaction_type);
   const valueInM = Math.abs(trade.transaction_value / 1000000).toFixed(1);
   
   // Check if this is a real cluster (multiple different insiders) or same person multiple times
@@ -21,15 +23,17 @@ export default function TradeCard({ trade }) {
             {trade.company_name}
           </p>
         </div>
-        <div className={`text-xs font-medium px-2 py-1 rounded ${
-          transactionType === 'buy'
-            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
-            : transactionType === 'sell'
-            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
-            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-        }`}>
-          {transactionType === 'buy' ? 'BUY' : transactionType === 'sell' ? 'SELL' : 'OTHER'}
-        </div>
+        <Tooltip content={transactionDescription}>
+          <div className={`text-xs font-medium px-2 py-1 rounded cursor-help ${
+            transactionType === 'buy'
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
+              : transactionType === 'sell'
+              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+          }`}>
+            {trade.transaction_type}
+          </div>
+        </Tooltip>
       </div>
 
       {/* Cluster or Multiple Trades Label */}

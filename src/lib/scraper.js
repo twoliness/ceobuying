@@ -61,13 +61,20 @@ export class InsiderTradeScraper {
 
       console.log(`Parsed ${allTrades.length} trades`);
 
-      // 3. Filter trades
+      // 3. Filter trades - Accept ALL transaction types (P, S, A, D, E, M, F, etc.)
+      // Only filter out trades with zero or negative value
       const filteredTrades = allTrades.filter(trade => {
-        return (trade.transactionType === 'P' && trade.value >= this.minBuyValue) ||
-               (trade.transactionType === 'S' && trade.value >= this.minSaleValue);
+        return trade.value > 0 && !isNaN(trade.value);
       });
 
-      console.log(`Filtered to ${filteredTrades.length} trades`);
+      console.log(`Filtered to ${filteredTrades.length} valid trades (all transaction types)`);
+      
+      // Log transaction type breakdown
+      const typeBreakdown = {};
+      filteredTrades.forEach(t => {
+        typeBreakdown[t.transactionType] = (typeBreakdown[t.transactionType] || 0) + 1;
+      });
+      console.log('Transaction types:', Object.entries(typeBreakdown).map(([k, v]) => `${k}:${v}`).join(', '));
 
       // 4. Store trades first
       console.log('\n💾 Storing trades in database...');
@@ -176,15 +183,24 @@ export class InsiderTradeScraper {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const dateFilter = thirtyDaysAgo.toISOString().split('T')[0];
 
+      console.log(`  🔍 Analyzing trades from ${dateFilter} onwards...`);
+
       const { data: allTrades, error } = await supabaseAdmin
         .from('insider_trades')
         .select('*')
         .gte('filing_date', dateFilter);
 
-      if (error) throw error;
-      if (!allTrades || allTrades.length === 0) return;
+      if (error) {
+        console.error('  ❌ Supabase error:', error);
+        throw error;
+      }
+      
+      if (!allTrades || allTrades.length === 0) {
+        console.log('  ℹ️  No trades found in last 30 days');
+        return;
+      }
 
-      console.log(`  Analyzing ${allTrades.length} trades from last 30 days...`);
+      console.log(`  🔍 Analyzing ${allTrades.length} trades for clusters...`);
 
       // Group by ticker + transaction_type
       const groups = {};
@@ -241,10 +257,11 @@ export class InsiderTradeScraper {
             
             if (groupInsiders.size >= 2) {
               clusterCount++;
-              console.log(`  🔥 ${ticker} (${type}): ${groupInsiders.size} different insiders`);
+              const typeLabel = type === 'P' ? 'Purchases' : type === 'S' ? 'Sales' : `Type ${type}`;
+              console.log(`  🔥 ${ticker} ${typeLabel}: ${groupInsiders.size} different insiders`);
 
               for (const trade of timeGroup.trades) {
-                await supabaseAdmin
+                const { error: updateError } = await supabaseAdmin
                   .from('insider_trades')
                   .update({
                     is_cluster_buy: true,
@@ -252,17 +269,25 @@ export class InsiderTradeScraper {
                   })
                   .eq('id', trade.id);
                 
-                updatedCount++;
+                if (updateError) {
+                  console.error(`  ⚠️  Failed to update trade ${trade.id}:`, updateError.message);
+                } else {
+                  updatedCount++;
+                }
               }
             }
           }
         }
       }
 
-      console.log(`  ✓ Found ${clusterCount} real clusters, updated ${updatedCount} records`);
+      console.log(`  ✓ Found ${clusterCount} clusters, updated ${updatedCount} trades`);
 
     } catch (error) {
-      console.error('  Error detecting clusters:', error.message);
+      console.error('  ❌ Error detecting clusters:', error.message);
+      if (error.stack) {
+        console.error('  Stack:', error.stack);
+      }
+      // Don't throw - allow scraper to continue
     }
   }
 

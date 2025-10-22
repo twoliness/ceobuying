@@ -13,8 +13,10 @@ import {
 import { 
   getTransactionLabel, 
   getTransactionBadgeClasses,
+  getTransactionDescription,
   isPurchase 
 } from '@/lib/transaction-codes';
+import { Tooltip } from '@/components/ui/tooltip';
 
 export default function TradesTable({ trades, title, icon }) {
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
@@ -107,7 +109,8 @@ export default function TradesTable({ trades, title, icon }) {
       group.cluster_count = group.trades[0]?.cluster_count || group.insider_count;
     });
 
-    return Object.values(groups);
+    // Sort by total value descending (highest value first)
+    return Object.values(groups).sort((a, b) => Math.abs(b.total_value) - Math.abs(a.total_value));
   }
 
   const toggleCompany = (key) => {
@@ -145,22 +148,18 @@ export default function TradesTable({ trades, title, icon }) {
               <TableHead className="text-left text-xs font-medium w-24 min-w-24">Industry</TableHead>
               {isClusterTable && <TableHead className="text-center text-xs font-medium w-12 min-w-12">Insiders</TableHead>}
               {!isClusterTable && <TableHead className="text-left text-xs font-medium min-w-48">Insider</TableHead>}
-              <TableHead className="text-center text-xs font-medium w-32 min-w-32">Trade Type</TableHead>
+              <TableHead className="text-center text-xs font-medium w-20 min-w-20">Trade Type</TableHead>
               <TableHead className="text-right text-xs font-medium w-20 min-w-20">Price</TableHead>
               <TableHead className="text-right text-xs font-medium w-24 min-w-24">Qty</TableHead>
               <TableHead className="text-right text-xs font-medium w-24 min-w-24">Owned</TableHead>
               <TableHead className="text-right text-xs font-medium w-20 min-w-20">ΔOwn</TableHead>
               <TableHead className="text-right text-xs font-medium w-24 min-w-24">Value</TableHead>
-              <TableHead className="text-right text-xs font-medium w-12 min-w-12">1d</TableHead>
-              <TableHead className="text-right text-xs font-medium w-12 min-w-12">1w</TableHead>
-              <TableHead className="text-right text-xs font-medium w-12 min-w-12">1m</TableHead>
-              <TableHead className="text-right text-xs font-medium w-12 min-w-12">6m</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {trades.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isClusterTable ? 17 : 16} className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <TableCell colSpan={isClusterTable ? 13 : 12} className="text-center py-12 text-gray-500 dark:text-gray-400">
                   {isClusterTable ? 'No clusters found in the last 30 days' : 'No trades found'}
                 </TableCell>
               </TableRow>
@@ -198,24 +197,24 @@ export default function TradesTable({ trades, title, icon }) {
                           </span>
                         </TableCell>
                         <TableCell className="min-w-48">
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-gray-900 line-clamp-2">
                             {group.company_name}
                           </span>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                          {group.industry || '-'}
+                          <span className="line-clamp-2">{group.industry || '-'}</span>
                         </TableCell>
                         <TableCell className="text-center w-12 min-w-12">
-                          <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white rounded-full ${
-                            isAcquisition ? 'bg-orange-600' : 'bg-purple-600'
-                          }`}>
+                          <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white rounded-full bg-purple-600">
                             {group.cluster_count}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center w-32 min-w-32">
-                          <span className={getTransactionBadgeClasses(group.transaction_type)}>
-                            {getTransactionLabel(group.transaction_type)}
-                          </span>
+                        <TableCell className="text-center w-20 min-w-20">
+                          <Tooltip content={getTransactionDescription(group.transaction_type)}>
+                            <span className={`${getTransactionBadgeClasses(group.transaction_type)} cursor-help`}>
+                              {group.transaction_type}
+                            </span>
+                          </Tooltip>
                         </TableCell>
                         <TableCell className="text-sm text-right text-gray-900 dark:text-white w-20 min-w-20">
                           ${group.avg_price?.toFixed(2)}
@@ -231,18 +230,6 @@ export default function TradesTable({ trades, title, icon }) {
                         </TableCell>
                         <TableCell className="text-sm text-right font-semibold text-gray-900 dark:text-white w-24 min-w-24">
                           {formatValue(group.total_value)}
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-gray-700 w-12 min-w-12">
-                          -
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-gray-700 w-12 min-w-12">
-                          -
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-gray-700 w-12 min-w-12">
-                          -
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-gray-700 w-12 min-w-12">
-                          -
                         </TableCell>
                       </TableRow>
 
@@ -263,23 +250,27 @@ export default function TradesTable({ trades, title, icon }) {
                             {trade.ticker}
                           </TableCell>
                           <TableCell className="text-xs text-gray-700 dark:text-gray-300 min-w-48">
-                            {trade.insider_name}
-                            {trade.insider_title && (
-                              <span className="text-gray-500 dark:text-gray-500 ml-1">
-                                ({trade.insider_title})
-                              </span>
-                            )}
+                            <div className="line-clamp-2">
+                              {trade.insider_name}
+                              {trade.insider_title && (
+                                <span className="text-gray-500 dark:text-gray-500 ml-1">
+                                  ({trade.insider_title})
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-xs text-gray-500 dark:text-gray-500 w-24 min-w-24">
-                            {trade.industry || '-'}
+                            <span className="line-clamp-2">{trade.industry || '-'}</span>
                           </TableCell>
                           <TableCell className="text-center text-xs text-gray-500 dark:text-gray-500 w-12 min-w-12">
                             1
                           </TableCell>
-                          <TableCell className="text-center w-32 min-w-32">
-                            <span className={getTransactionBadgeClasses(trade.transaction_type)}>
-                              {getTransactionLabel(trade.transaction_type)}
-                            </span>
+                          <TableCell className="text-center w-20 min-w-20">
+                            <Tooltip content={getTransactionDescription(trade.transaction_type)}>
+                              <span className={`${getTransactionBadgeClasses(trade.transaction_type)} cursor-help`}>
+                                {trade.transaction_type}
+                              </span>
+                            </Tooltip>
                           </TableCell>
                           <TableCell className="text-xs text-right text-gray-700 dark:text-gray-300 w-20 min-w-20">
                             ${trade.price?.toFixed(2)}
@@ -295,18 +286,6 @@ export default function TradesTable({ trades, title, icon }) {
                           </TableCell>
                           <TableCell className="text-xs text-right font-medium text-gray-700 dark:text-gray-300 w-24 min-w-24">
                             {formatValue(trade.transaction_value)}
-                          </TableCell>
-                          <TableCell className="text-xs text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                            -
-                          </TableCell>
-                          <TableCell className="text-xs text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                            -
-                          </TableCell>
-                          <TableCell className="text-xs text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                            -
-                          </TableCell>
-                          <TableCell className="text-xs text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                            -
                           </TableCell>
                         </TableRow>
                       ))}
@@ -330,23 +309,27 @@ export default function TradesTable({ trades, title, icon }) {
                     </span>
                   </TableCell>
                   <TableCell className="text-sm text-gray-900 dark:text-white min-w-48">
-                    {trade.company_name}
+                    <span className="line-clamp-2">{trade.company_name}</span>
                   </TableCell>
                   <TableCell className="text-sm text-gray-600 dark:text-gray-400 w-24 min-w-24">
-                    {trade.industry || '-'}
+                    <span className="line-clamp-2">{trade.industry || '-'}</span>
                   </TableCell>
                   <TableCell className="text-sm text-gray-900 dark:text-white min-w-48">
-                    {trade.insider_name}
-                    {trade.insider_title && (
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        {trade.insider_title}
-                      </div>
-                    )}
+                    <div className="line-clamp-2">
+                      {trade.insider_name}
+                      {trade.insider_title && (
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          {trade.insider_title}
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-center w-32 min-w-32">
-                    <span className={getTransactionBadgeClasses(trade.transaction_type)}>
-                      {getTransactionLabel(trade.transaction_type)}
-                    </span>
+                  <TableCell className="text-center w-20 min-w-20">
+                    <Tooltip content={getTransactionDescription(trade.transaction_type)}>
+                      <span className={`${getTransactionBadgeClasses(trade.transaction_type)} cursor-help`}>
+                        {trade.transaction_type}
+                      </span>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="text-sm text-right text-gray-900 dark:text-white w-20 min-w-20">
                     ${trade.price?.toFixed(2)}
@@ -362,18 +345,6 @@ export default function TradesTable({ trades, title, icon }) {
                   </TableCell>
                   <TableCell className="text-sm text-right font-medium text-gray-900 dark:text-white w-24 min-w-24">
                     {formatValue(trade.transaction_value)}
-                  </TableCell>
-                  <TableCell className="text-sm text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                    -
-                  </TableCell>
-                  <TableCell className="text-sm text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                    -
-                  </TableCell>
-                  <TableCell className="text-sm text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                    -
-                  </TableCell>
-                  <TableCell className="text-sm text-right text-gray-500 dark:text-gray-500 w-12 min-w-12">
-                    -
                   </TableCell>
                 </TableRow>
               ))

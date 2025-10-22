@@ -658,8 +658,10 @@ export class SECEdgarClient {
         // Calculate transaction value
         const value = shares * pricePerShare;
 
-        // Determine if purchase or sale
-        const isPurchase = acquiredDisposed === 'A' || transactionCode === 'P';
+        // Use the actual transaction code from the form
+        // Common codes: P (Purchase), S (Sale), A (Award/Grant), M (Option Exercise), 
+        // G (Gift), F (Tax Payment), D (Return to Issuer), etc.
+        const transactionType = transactionCode || (acquiredDisposed === 'A' ? 'P' : 'S');
 
         return {
           ticker,
@@ -670,8 +672,8 @@ export class SECEdgarClient {
           insiderTitle,
           securityTitle,
           tradeDate: transactionDate,
-          transactionType: isPurchase ? 'P' : 'S',
-          transactionCode,
+          transactionType: transactionType,  // Use actual SEC transaction code
+          transactionCode: transactionCode,   // Keep original for reference
           quantity: Math.abs(shares),
           price: pricePerShare,
           value,
