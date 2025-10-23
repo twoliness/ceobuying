@@ -20,7 +20,8 @@
     "test:hero": "node src/scripts/test-hero-thisweek.js",
     "debug:clusters": "node src/scripts/debug-cluster-detection.js",
     "debug:clusters-ui": "node src/scripts/debug-clusters.js",
-    "fix:clusters": "node src/scripts/fix-clusters.js"
+    "fix:clusters": "node src/scripts/fix-clusters.js",
+    "test:telegram": "node src/scripts/test-telegram.js"
   },
   "type": "module",
   "dependencies": {
@@ -30,6 +31,7 @@
     "dotenv": "^17.2.3",
     "lucide-react": "^0.546.0",
     "next": "15.5.5",
+    "node-cron": "^3.0.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwind-merge": "^3.3.1",

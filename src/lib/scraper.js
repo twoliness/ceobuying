@@ -62,9 +62,13 @@ export class InsiderTradeScraper {
       console.log(`Parsed ${allTrades.length} trades`);
 
       // 3. Filter trades - Accept ALL transaction types (P, S, A, D, E, M, F, etc.)
-      // Only filter out trades with zero or negative value
+      // Filter out: invalid values, missing/invalid tickers
       const filteredTrades = allTrades.filter(trade => {
-        return trade.value > 0 && !isNaN(trade.value);
+        return trade.value > 0 &&
+               !isNaN(trade.value) &&
+               trade.ticker &&
+               trade.ticker !== 'NONE' &&
+               trade.ticker.length > 0;
       });
 
       console.log(`Filtered to ${filteredTrades.length} valid trades (all transaction types)`);

@@ -7,8 +7,7 @@ import TradesTable from '@/components/TradesTable';
 export default function Home() {
   const [heroTrades, setHeroTrades] = useState([]);
   const [clusterTrades, setClusterTrades] = useState([]);
-  const [insiderBuys, setInsiderBuys] = useState([]);
-  const [insiderSales, setInsiderSales] = useState([]);
+  const [allTrades, setAllTrades] = useState([]);
   const [pennyStocks, setPennyStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,40 +30,36 @@ export default function Home() {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel - increased cluster limit to 100
-      const [heroRes, clusterRes, buysRes, salesRes, pennyRes] = await Promise.all([
+      // Fetch all data in parallel
+      const [heroRes, clusterRes, allTradesRes, pennyRes] = await Promise.all([
         fetch('/api/trades/hero'),
-        fetch('/api/trades?type=cluster&limit=100'), // Increased from 20
-        fetch('/api/trades?type=buys&limit=20'),
-        fetch('/api/trades?type=sales&limit=20'),
+        fetch('/api/trades?type=cluster&limit=100'),
+        fetch('/api/trades?limit=50'), // All trades (buys, sales, etc.)
         fetch('/api/trades/pennystocks?limit=20')
       ]);
 
       // Check if all requests were successful
-      if (!heroRes.ok || !clusterRes.ok || !buysRes.ok || !salesRes.ok || !pennyRes.ok) {
+      if (!heroRes.ok || !clusterRes.ok || !allTradesRes.ok || !pennyRes.ok) {
         throw new Error('Failed to fetch data from API');
       }
 
-      const [heroData, clusterData, buysData, salesData, pennyData] = await Promise.all([
+      const [heroData, clusterData, allTradesData, pennyData] = await Promise.all([
         heroRes.json(),
         clusterRes.json(),
-        buysRes.json(),
-        salesRes.json(),
+        allTradesRes.json(),
         pennyRes.json()
       ]);
 
       setHeroTrades(heroData.trades || []);
       setClusterTrades(clusterData.trades || []);
-      setInsiderBuys(buysData.trades || []);
-      setInsiderSales(salesData.trades || []);
+      setAllTrades(allTradesData.trades || []);
       setPennyStocks(pennyData.trades || []);
       setLastUpdated(new Date());
 
       console.log('Data refreshed successfully:', {
         hero: heroData.trades?.length || 0,
         cluster: clusterData.trades?.length || 0,
-        buys: buysData.trades?.length || 0,
-        sales: salesData.trades?.length || 0,
+        allTrades: allTradesData.trades?.length || 0,
         penny: pennyData.trades?.length || 0
       });
 
@@ -161,19 +156,11 @@ export default function Home() {
             />
           )}
 
-          {insiderBuys.length > 0 && (
+          {allTrades.length > 0 && (
             <TradesTable
-              trades={insiderBuys}
-              title="Insider Buys"
-              icon="📈"
-            />
-          )}
-
-          {insiderSales.length > 0 && (
-            <TradesTable
-              trades={insiderSales}
-              title="Insider Sales"
-              icon="📉"
+              trades={allTrades}
+              title="All Trades"
+              icon="📊"
             />
           )}
 
@@ -188,8 +175,7 @@ export default function Home() {
 
         {/* Empty State */}
         {!loading && heroTrades.length === 0 && clusterTrades.length === 0 &&
-         insiderBuys.length === 0 && insiderSales.length === 0 && 
-         pennyStocks.length === 0 && (
+         allTrades.length === 0 && pennyStocks.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">📊</div>
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">

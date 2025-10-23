@@ -9,13 +9,11 @@ import { InsiderTradeScraper } from '@/lib/scraper.js';
  * Usage: POST /api/scrape with header: Authorization: Bearer YOUR_CRON_SECRET
  */
 export async function POST(request) {
-  const startTime = Date.now();
-  
   try {
     // Optional: Add authentication for production
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    
+
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       console.warn('❌ Unauthorized scrape attempt');
       return NextResponse.json(
@@ -24,44 +22,23 @@ export async function POST(request) {
       );
     }
 
-    console.log('='.repeat(60));
-    console.log('🚀 Manual scrape triggered via API');
-    console.log(`   Time: ${new Date().toISOString()}`);
-    console.log(`   Max filings: ${process.env.MAX_FILINGS || 'all'}`);
-    console.log('='.repeat(60));
+    console.log('🔍 Testing CeoBuying Scraper...');
 
     const scraper = new InsiderTradeScraper();
     const result = await scraper.runDailyScrape();
 
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    
-    console.log('='.repeat(60));
-    console.log('✅ Scrape completed successfully');
-    console.log(`   Duration: ${duration}s`);
-    console.log(`   Trades processed: ${result.tradesProcessed || 0}`);
-    console.log('='.repeat(60));
+    console.log('\n✅ Scraper test completed:');
+    console.log(JSON.stringify(result, null, 2));
 
-    return NextResponse.json({
-      ...result,
-      duration: `${duration}s`,
-      timestamp: new Date().toISOString()
-    });
+    return NextResponse.json(result);
 
   } catch (error) {
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    
-    console.error('='.repeat(60));
-    console.error('❌ Scrape failed');
-    console.error(`   Duration: ${duration}s`);
-    console.error(`   Error: ${error.message}`);
-    console.error('='.repeat(60));
+    console.error('\n❌ Scraper test failed:');
     console.error(error);
-    
+
     return NextResponse.json({
       success: false,
-      error: error.message,
-      duration: `${duration}s`,
-      timestamp: new Date().toISOString()
+      error: error.message
     }, { status: 500 });
   }
 }

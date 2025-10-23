@@ -582,7 +582,9 @@ export class SECEdgarClient {
 
       // Issuer (company) information - THIS IS THE COMPANY CIK, NOT THE INSIDER'S!
       const issuer = doc.issuer;
-      const ticker = issuer?.issuerTradingSymbol || '';
+      const rawTicker = issuer?.issuerTradingSymbol || '';
+      // Filter out invalid tickers: 'NONE', 'N/A', empty strings, or non-public companies
+      const ticker = (rawTicker && rawTicker !== 'NONE' && rawTicker !== 'N/A') ? rawTicker : '';
       const companyName = issuer?.issuerName || '';
       const companyCik = issuer?.issuerCik || ''; // This is the COMPANY's CIK
 
