@@ -14,8 +14,16 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
+    // Debug logging
+    console.log('🔐 Auth Debug:');
+    console.log('  - CRON_SECRET exists:', !!cronSecret);
+    console.log('  - CRON_SECRET length:', cronSecret?.length || 0);
+    console.log('  - Auth header exists:', !!authHeader);
+    console.log('  - Auth header value:', authHeader?.substring(0, 20) + '...');
+    console.log('  - Expected:', cronSecret ? `Bearer ${cronSecret}`.substring(0, 20) + '...' : 'N/A');
+
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.warn('❌ Unauthorized scrape attempt');
+      console.warn('❌ Unauthorized scrape attempt - credentials do not match');
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
