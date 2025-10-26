@@ -97,7 +97,7 @@ export default function PrivacyPage() {
                 </a>
               </li>
               <li>
-                <strong>Opt out of premium:</strong> cancel in Stripe; we'll revoke access automatically or upon expiry.
+                <strong>Opt out of premium:</strong> cancel in Stripe; we&apos;ll revoke access automatically or upon expiry.
               </li>
             </ul>
           </section>
