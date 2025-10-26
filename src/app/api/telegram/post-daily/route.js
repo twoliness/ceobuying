@@ -27,22 +27,22 @@ export async function POST(request) {
 
     // Parse optional parameters
     const body = await request.json().catch(() => ({}));
-    const timeframe = body.timeframe || '24h'; // 24h, 12h, 1h
+    const timeframe = body.timeframe || '24h'; // 24h, 12h, 1h, 7d, 30d, etc.
 
     // Get cutoff time
     const now = new Date();
     const cutoffTime = new Date(now);
 
-    switch(timeframe) {
-      case '1h':
-        cutoffTime.setHours(cutoffTime.getHours() - 1);
-        break;
-      case '12h':
-        cutoffTime.setHours(cutoffTime.getHours() - 12);
-        break;
-      case '24h':
-      default:
-        cutoffTime.setHours(cutoffTime.getHours() - 24);
+    // Support both hours (1h, 12h, 24h) and days (7d, 30d)
+    if (timeframe.endsWith('h')) {
+      const hours = parseInt(timeframe);
+      cutoffTime.setHours(cutoffTime.getHours() - hours);
+    } else if (timeframe.endsWith('d')) {
+      const days = parseInt(timeframe);
+      cutoffTime.setDate(cutoffTime.getDate() - days);
+    } else {
+      // Default to 24 hours
+      cutoffTime.setHours(cutoffTime.getHours() - 24);
     }
 
     const cutoffDate = cutoffTime.toISOString();
@@ -162,7 +162,7 @@ export async function GET() {
       method: 'POST',
       headers: isSecured ? { 'Authorization': 'Bearer YOUR_CRON_SECRET' } : {},
       body: {
-        timeframe: '24h | 12h | 1h (optional, default: 24h)'
+        timeframe: '24h | 12h | 1h | 7d | 30d (optional, default: 24h)'
       },
       curl: isSecured
         ? 'curl -X POST https://ceobuying.com/api/telegram/post-daily -H "Authorization: Bearer YOUR_CRON_SECRET" -H "Content-Type: application/json" -d \'{"timeframe":"24h"}\''
