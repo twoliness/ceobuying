@@ -27,7 +27,7 @@ export async function POST(request) {
 
     // Parse optional parameters
     const body = await request.json().catch(() => ({}));
-    const timeframe = body.timeframe || '24h'; // 24h, 12h, 1h, 7d, 30d, etc.
+    const timeframe = body.timeframe || '3d'; // Default 3 days to cover weekends
 
     // Get cutoff time
     const now = new Date();
@@ -41,8 +41,8 @@ export async function POST(request) {
       const days = parseInt(timeframe);
       cutoffTime.setDate(cutoffTime.getDate() - days);
     } else {
-      // Default to 24 hours
-      cutoffTime.setHours(cutoffTime.getHours() - 24);
+      // Default to 3 days (covers weekends)
+      cutoffTime.setDate(cutoffTime.getDate() - 3);
     }
 
     const cutoffDate = cutoffTime.toISOString();
@@ -162,7 +162,7 @@ export async function GET() {
       method: 'POST',
       headers: isSecured ? { 'Authorization': 'Bearer YOUR_CRON_SECRET' } : {},
       body: {
-        timeframe: '24h | 12h | 1h | 7d | 30d (optional, default: 24h)'
+        timeframe: '24h | 12h | 1h | 7d | 30d (optional, default: 3d to cover weekends)'
       },
       curl: isSecured
         ? 'curl -X POST https://ceobuying.com/api/telegram/post-daily -H "Authorization: Bearer YOUR_CRON_SECRET" -H "Content-Type: application/json" -d \'{"timeframe":"24h"}\''

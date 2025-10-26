@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TradeCard from '@/components/TradeCard';
 import TradesTable from '@/components/TradesTable';
+import TelegramBanner from '@/components/TelegramBanner';
 
 export default function Home() {
   const [heroTrades, setHeroTrades] = useState([]);
@@ -146,6 +147,11 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* Telegram Banner */}
+        <section className="mb-12">
+          <TelegramBanner />
+        </section>
 
         {/* Tables Section */}
         <div className="space-y-8">
