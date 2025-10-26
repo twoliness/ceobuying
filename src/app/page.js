@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import TradeCard from '@/components/TradeCard';
 import TradesTable from '@/components/TradesTable';
 
@@ -196,9 +197,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600 dark:text-gray-400 text-xs">
             <p className="mb-1">
-              Data sourced from SEC EDGAR
+              Data sourced from SEC EDGAR · ©2025
             </p>
-            ©2025
+            <Link
+              href="/privacy"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Privacy
+            </Link>
           </div>
         </div>
       </footer>
