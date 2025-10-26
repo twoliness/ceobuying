@@ -90,10 +90,10 @@ export default function PrivacyPage() {
               <li>
                 <strong>Access/Update/Erase:</strong> DM /delete in the bot or email{' '}
                 <a
-                  href="mailto:support@ceobuying.com"
+                  href="mailto:contact@ceobuying.com"
                   className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  support@ceobuying.com
+                  contact@ceobuying.com
                 </a>
               </li>
               <li>
@@ -126,10 +126,10 @@ export default function PrivacyPage() {
             </h2>
             <p className="text-gray-700 dark:text-gray-300">
               <a
-                href="mailto:support@ceobuying.com"
+                href="mailto:contact@ceobuying.com"
                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                support@ceobuying.com
+                contact@ceobuying.com
               </a>
             </p>
           </section>
