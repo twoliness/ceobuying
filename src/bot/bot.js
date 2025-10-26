@@ -1,7 +1,6 @@
 // bot.js
-// npm i telegraf node-fetch
+// npm i telegraf
 import 'dotenv/config';
-import fetch from 'node-fetch';
 import { Telegraf } from 'telegraf';
 
 // === ENV ===

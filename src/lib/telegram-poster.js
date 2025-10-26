@@ -1,8 +1,7 @@
-import fetch from 'node-fetch';
-
 /**
  * Telegram Channel Poster
  * Sends formatted messages to Telegram channels
+ * Uses built-in fetch (Node 18+)
  */
 export class TelegramPoster {
   constructor() {
