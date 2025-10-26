@@ -583,8 +583,21 @@ export class SECEdgarClient {
       // Issuer (company) information - THIS IS THE COMPANY CIK, NOT THE INSIDER'S!
       const issuer = doc.issuer;
       const rawTicker = issuer?.issuerTradingSymbol || '';
-      // Filter out invalid tickers: 'NONE', 'N/A', empty strings, or non-public companies
-      const ticker = (rawTicker && rawTicker !== 'NONE' && rawTicker !== 'N/A') ? rawTicker : '';
+      
+      // Robust ticker validation
+      // 1. Trim whitespace and convert to uppercase
+      const cleanedTicker = String(rawTicker).trim().toUpperCase();
+      
+      // 2. Check for invalid ticker patterns
+      const isValidTicker = 
+        cleanedTicker.length > 0 &&                    // Not empty
+        cleanedTicker !== 'NONE' &&                    // Not 'NONE'
+        cleanedTicker !== 'N/A' &&                     // Not 'N/A'
+        cleanedTicker !== 'NA' &&                      // Not 'NA'
+        cleanedTicker !== 'NULL' &&                    // Not 'NULL'
+        /^[A-Z]{1,5}$/.test(cleanedTicker);           // Only 1-5 uppercase letters (valid ticker format)
+      
+      const ticker = isValidTicker ? cleanedTicker : null;
       const companyName = issuer?.issuerName || '';
       const companyCik = issuer?.issuerCik || ''; // This is the COMPANY's CIK
 
