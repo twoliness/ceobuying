@@ -5,6 +5,7 @@ import Link from 'next/link';
 import TradeCard from '@/components/TradeCard';
 import TradesTable from '@/components/TradesTable';
 import TelegramBanner from '@/components/TelegramBanner';
+import StockChartSidebar from '@/components/StockChartSidebar';
 
 export default function Home() {
   const [heroTrades, setHeroTrades] = useState([]);
@@ -134,50 +135,62 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-2 py-4">
-        {/* Hero Cards Section */}
-        {heroTrades.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-6 uppercase">
-              Top Trades This Week
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-              {heroTrades.slice(0, 10).map((trade, idx) => (
-                <TradeCard key={`${trade.ticker}-${trade.transaction_type}-${idx}`} trade={trade} />
-              ))}
+        <div className="flex gap-4">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {/* Hero Cards Section */}
+            {heroTrades.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-6 uppercase">
+                  Top Trades This Week
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {heroTrades.slice(0, 10).map((trade, idx) => (
+                    <TradeCard key={`${trade.ticker}-${trade.transaction_type}-${idx}`} trade={trade} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Telegram Banner */}
+            <section className="mb-12">
+              <TelegramBanner />
+            </section>
+
+            {/* Tables Section */}
+            <div className="space-y-8">
+              {clusterTrades.length > 0 && (
+                <TradesTable
+                  trades={clusterTrades}
+                  title="Clusters"
+                  icon="🔥"
+                />
+              )}
+
+              {allTrades.length > 0 && (
+                <TradesTable
+                  trades={allTrades}
+                  title="All Trades"
+                  icon="📊"
+                />
+              )}
+
+              {pennyStocks.length > 0 && (
+                <TradesTable
+                  trades={pennyStocks}
+                  title="Penny Stocks"
+                  icon="💰"
+                />
+              )}
             </div>
-          </section>
-        )}
+          </div>
 
-        {/* Telegram Banner */}
-        <section className="mb-12">
-          <TelegramBanner />
-        </section>
-
-        {/* Tables Section */}
-        <div className="space-y-8">
-          {clusterTrades.length > 0 && (
-            <TradesTable
-              trades={clusterTrades}
-              title="Clusters"
-              icon="🔥"
-            />
-          )}
-
-          {allTrades.length > 0 && (
-            <TradesTable
-              trades={allTrades}
-              title="All Trades"
-              icon="📊"
-            />
-          )}
-
-          {pennyStocks.length > 0 && (
-            <TradesTable
-              trades={pennyStocks}
-              title="Penny Stocks"
-              icon="💰"
-            />
-          )}
+          {/* Stock Chart Sidebar */}
+          <aside className="hidden xl:block w-80 flex-shrink-0">
+            <div className="sticky top-4">
+              <StockChartSidebar heroTrades={heroTrades} />
+            </div>
+          </aside>
         </div>
 
         {/* Empty State */}

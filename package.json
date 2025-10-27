@@ -21,7 +21,8 @@
     "debug:clusters": "node src/scripts/debug-cluster-detection.js",
     "debug:clusters-ui": "node src/scripts/debug-clusters.js",
     "fix:clusters": "node src/scripts/fix-clusters.js",
-    "test:telegram": "node src/scripts/test-telegram.js"
+    "test:telegram": "node src/scripts/test-telegram.js",
+    "sync:stocks": "node src/scripts/sync-stock-prices.js"
   },
   "type": "module",
   "dependencies": {
@@ -35,7 +36,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwind-merge": "^3.3.1",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "yahoo-finance2": "^3.10.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
