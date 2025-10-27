@@ -188,7 +188,7 @@ export default function Home() {
           {/* Stock Chart Sidebar */}
           <aside className="hidden xl:block w-64 flex-shrink-0">
             <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-              <StockChartSidebar heroTrades={heroTrades} />
+              <StockChartSidebar />
             </div>
           </aside>
         </div>
