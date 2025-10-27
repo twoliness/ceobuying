@@ -84,8 +84,8 @@ export default function StockChart({ ticker }) {
   const isPositive = change >= 0;
 
   // Generate SVG path
-  const width = 280;
-  const height = 120;
+  const width = 220;
+  const height = 100;
   const padding = 10;
 
   const points = prices.map((price, index) => {

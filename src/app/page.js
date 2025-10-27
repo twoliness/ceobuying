@@ -89,7 +89,7 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-4 py-3">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-2 py-2">
+        <div className="max-w-6xl mx-auto px-2 sm:px-2 lg:px-2 py-2">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-md font-bold text-gray-900 dark:text-white uppercase">
@@ -134,7 +134,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-2 py-4">
+      <main className="max-w-6xl mx-auto px-2 sm:px-2 lg:px-2 py-4">
         <div className="flex gap-4">
           {/* Main Content */}
           <div className="flex-1 min-w-0">
@@ -186,8 +186,8 @@ export default function Home() {
           </div>
 
           {/* Stock Chart Sidebar */}
-          <aside className="hidden xl:block w-80 flex-shrink-0">
-            <div className="sticky top-4">
+          <aside className="hidden xl:block w-64 flex-shrink-0">
+            <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
               <StockChartSidebar heroTrades={heroTrades} />
             </div>
           </aside>
@@ -213,7 +213,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600 dark:text-gray-400 text-xs">
             <p className="mb-1">
               Data sourced from SEC EDGAR · ©2025
