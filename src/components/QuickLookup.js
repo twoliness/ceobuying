@@ -73,10 +73,10 @@ export default function QuickLookup() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Search Input */}
       <div className="relative">
-        <div className="relative">
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             ref={inputRef}
@@ -84,8 +84,8 @@ export default function QuickLookup() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => results.length > 0 && setShowResults(true)}
-            placeholder="Quick lookup: Search ticker or company..."
-            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search ticker or company..."
+            className="w-full pl-7 pr-2 text-sm bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
           />
         </div>
 

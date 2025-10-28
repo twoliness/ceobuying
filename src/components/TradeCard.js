@@ -1,5 +1,6 @@
 import { isPurchase, getTransactionType, getTransactionDescription } from '@/lib/transaction-codes';
 import { Tooltip } from '@/components/ui/tooltip';
+import MiniStockChart from '@/components/MiniStockChart';
 
 export default function TradeCard({ trade }) {
   const isAcquisition = isPurchase(trade.transaction_type);
@@ -84,6 +85,9 @@ export default function TradeCard({ trade }) {
           </div>
         )}
       </div>
+
+      {/* Mini Chart */}
+      <MiniStockChart ticker={trade.ticker} />
 
       {isAggregated && (
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">

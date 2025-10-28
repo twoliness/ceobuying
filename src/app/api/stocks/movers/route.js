@@ -5,78 +5,53 @@ import { supabaseAdmin } from '@/lib/supabase.js';
  * GET /api/stocks/movers
  * Get top gainers and losers (Up Today / Down Today)
  *
- * Calculates % change between latest close and previous close
+ * Uses materialized view for fast performance
+ * View is refreshed after each stock price sync
  */
 export async function GET() {
   try {
-    // Get all tickers with at least 2 days of data
-    const { data: tickers, error: tickersError } = await supabaseAdmin
-      .from('stock_metadata')
-      .select('ticker');
+    // Fetch top gainers
+    const { data: gainers, error: gainersError } = await supabaseAdmin
+      .from('stock_movers')
+      .select('ticker, company_name, current_price, change, change_percent')
+      .eq('mover_type', 'gainer')
+      .order('change_percent', { ascending: false })
+      .limit(10);
 
-    if (tickersError) {
-      throw tickersError;
+    if (gainersError) {
+      console.error('Error fetching gainers:', gainersError);
+      throw gainersError;
     }
 
-    if (!tickers || tickers.length === 0) {
-      return NextResponse.json({
-        success: true,
-        upToday: [],
-        downToday: []
-      });
+    // Fetch top losers
+    const { data: losers, error: losersError } = await supabaseAdmin
+      .from('stock_movers')
+      .select('ticker, company_name, current_price, change, change_percent')
+      .eq('mover_type', 'loser')
+      .order('change_percent', { ascending: true })
+      .limit(10);
+
+    if (losersError) {
+      console.error('Error fetching losers:', losersError);
+      throw losersError;
     }
 
-    const movers = [];
+    // Format response
+    const upToday = (gainers || []).map(m => ({
+      ticker: m.ticker,
+      companyName: m.company_name,
+      price: parseFloat(m.current_price),
+      change: parseFloat(m.change),
+      changePercent: parseFloat(m.change_percent.toFixed(2))
+    }));
 
-    // For each ticker, get the last 2 days of data to calculate % change
-    for (const { ticker } of tickers) {
-      const { data: prices, error: pricesError } = await supabaseAdmin
-        .from('stock_prices')
-        .select('date, close')
-        .eq('ticker', ticker)
-        .order('date', { ascending: false })
-        .limit(2);
-
-      if (pricesError || !prices || prices.length < 2) {
-        continue; // Skip if not enough data
-      }
-
-      const latest = prices[0];
-      const previous = prices[1];
-
-      const change = latest.close - previous.close;
-      const changePercent = ((change / previous.close) * 100).toFixed(2);
-
-      // Get metadata for company name
-      const { data: metadata } = await supabaseAdmin
-        .from('stock_metadata')
-        .select('company_name')
-        .eq('ticker', ticker)
-        .single();
-
-      movers.push({
-        ticker,
-        companyName: metadata?.company_name || ticker,
-        price: parseFloat(latest.close),
-        change: parseFloat(change.toFixed(2)),
-        changePercent: parseFloat(changePercent)
-      });
-    }
-
-    // Sort by change percent
-    movers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
-
-    // Get top 10 gainers (positive change)
-    const upToday = movers
-      .filter(m => m.changePercent > 0)
-      .sort((a, b) => b.changePercent - a.changePercent)
-      .slice(0, 10);
-
-    // Get top 10 losers (negative change)
-    const downToday = movers
-      .filter(m => m.changePercent < 0)
-      .sort((a, b) => a.changePercent - b.changePercent)
-      .slice(0, 10);
+    const downToday = (losers || []).map(m => ({
+      ticker: m.ticker,
+      companyName: m.company_name,
+      price: parseFloat(m.current_price),
+      change: parseFloat(m.change),
+      changePercent: parseFloat(m.change_percent.toFixed(2))
+    }));
 
     return NextResponse.json({
       success: true,

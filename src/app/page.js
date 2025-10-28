@@ -89,7 +89,7 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-4 py-3">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800">
-        <div className="max-w-6xl mx-auto px-2 sm:px-2 lg:px-2 py-2">
+        <div className="max-w-full mx-auto px-3 sm:px-3 lg:px-8 py-2">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-md font-bold text-gray-900 dark:text-white uppercase">
@@ -134,7 +134,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-2 sm:px-2 lg:px-2 py-4">
+      <main className="max-w-full mx-auto px-3 sm:px-3 lg:px-8 py-4">
         <div className="flex gap-4">
           {/* Main Content */}
           <div className="flex-1 min-w-0">

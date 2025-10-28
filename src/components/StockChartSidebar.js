@@ -12,13 +12,13 @@ export default function StockChartSidebar() {
     <div className="space-y-6">
       {/* Quick Lookup */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase mb-3">
-          Quick Lookup
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+          QUICK LOOKUP
         </h2>
         <QuickLookup />
       </div>
 
-      {/* Market Movers with Charts */}
+      {/* Market Movers */}
       <StockMovers />
     </div>
   );
