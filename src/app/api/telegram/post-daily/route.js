@@ -112,9 +112,40 @@ export async function POST(request) {
 
     console.log('📝 Message formatted, length:', message.length);
 
+    // Check for recent duplicate posts (within last 5 minutes)
+    const messageHash = Buffer.from(message).toString('base64').slice(0, 20);
+    const recentPostKey = `telegram_post_${messageHash}`;
+
+    // Check if this exact message was sent recently
+    const { data: recentPosts } = await supabaseAdmin
+      .from('job_runs')
+      .select('*')
+      .eq('job_type', recentPostKey)
+      .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+      .limit(1);
+
+    if (recentPosts && recentPosts.length > 0) {
+      console.log('⚠️  Duplicate post detected - skipping to prevent spam');
+      return NextResponse.json({
+        success: true,
+        message: 'Duplicate post prevented',
+        lastPosted: recentPosts[0].created_at
+      });
+    }
+
     // Send to Telegram
     const poster = new TelegramPoster();
     const result = await poster.sendToFreeChannel(message);
+
+    // Record this post to prevent duplicates
+    await supabaseAdmin
+      .from('job_runs')
+      .insert({
+        job_type: recentPostKey,
+        status: 'success',
+        metadata: { message_id: result.message_id }
+      })
+      .catch(err => console.warn('Could not record post:', err));
 
     console.log('✅ Posted to Telegram successfully');
 

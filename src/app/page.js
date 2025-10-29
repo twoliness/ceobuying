@@ -135,6 +135,11 @@ export default function Home() {
       </header>
 
       <main className="max-w-full mx-auto px-3 sm:px-3 lg:px-8 py-4">
+        {/* Mobile Sidebar - Shows at top on mobile/tablet */}
+        <div className="xl:hidden mb-8">
+          <StockChartSidebar />
+        </div>
+
         <div className="flex gap-4">
           {/* Main Content */}
           <div className="flex-1 min-w-0">
@@ -185,7 +190,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Stock Chart Sidebar */}
+          {/* Desktop Sidebar - Shows on right side for large screens */}
           <aside className="hidden xl:block w-64 flex-shrink-0">
             <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
               <StockChartSidebar />
